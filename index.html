@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>a冰4.0 · QQ群发布页</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+    color: #fff;
+    padding: 20px;
+  }
+  .card {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 24px;
+    padding: 48px 56px;
+    max-width: 460px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(64,158,255,0.2);
+    color: #7cb8ff;
+    border: 1px solid rgba(64,158,255,0.4);
+    padding: 6px 18px;
+    border-radius: 100px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    background: linear-gradient(90deg, #7cb8ff, #a8e0ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .sub { color: rgba(255,255,255,0.6); font-size: 14px; margin-bottom: 32px; letter-spacing: 1px; }
+  .qq {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .qq-label { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 28px; }
+  .btn {
+    display: inline-block;
+    width: 100%;
+    padding: 16px 0;
+    border-radius: 14px;
+    border: none;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    background: linear-gradient(90deg, #409eff, #79bbff);
+    color: #fff;
+    transition: all .25s;
+    text-decoration: none;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(64,158,255,0.4); }
+  .copy {
+    margin-top: 14px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+  }
+  .copy:hover { background: rgba(255,255,255,0.15); box-shadow: none; transform: none; }
+  .tip { margin-top: 24px; color: rgba(255,255,255,0.35); font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">NEW · 新群</div>
+    <h1>a冰4.0</h1>
+    <div class="sub">A B I N G · 4 . 0</div>
+    <div class="qq">1098549767</div>
+    <div class="qq-label">QQ 群号</div>
+    <a class="btn" href="https://qm.qq.com/q/1098549767" target="_blank" rel="noopener">一键加群</a>
+    <button class="btn copy" onclick="copyQQ()">复制群号</button>
+    <div class="tip">Abing.www · 欢迎回家</div>
+  </div>
+<script>
+function copyQQ(){
+  navigator.clipboard.writeText("1098549767").then(()=>{
+    const b = document.querySelector(".copy");
+    b.textContent = "已复制 ✓";
+    setTimeout(()=>{ b.textContent = "复制群号"; }, 1500);
+  });
+}
+</script>
+</body>
+</html>
