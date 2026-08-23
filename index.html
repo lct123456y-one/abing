@@ -243,7 +243,7 @@
   </div>
   <div class="asoul-side">
     <h3>🌸 A-SOUL · 直播</h3>
-    <div class="asoul-live-row" id="asoulLive"></div>
+    <div id="asoulUpdated" style="color:#8b7aa8;font-size:11px;margin:6px 0;"></div>`n    <div class="asoul-live-row" id="asoulLive"></div>
     <div class="asoul-sleep-divider"><span>💤 只是睡着了...</span></div>
     <div class="asoul-live-row" id="asoulSleep"></div>
     <h3>🗓️ 本周直播安排</h3>
@@ -266,6 +266,8 @@
       const data = await res.json();
       const wrap = document.getElementById('asoulLive');
       wrap.innerHTML = '';
+      const uEl = document.getElementById('asoulUpdated');
+      if (uEl && data.updated) { const mins = Math.max(0, Math.round((Date.now() - data.updated) / 60000)); uEl.textContent = '更新于 ' + mins + ' 分钟前' + (mins > 10 ? '（数据可能延迟）' : ''); }
       // 3+2 分组：前3一排，后2一排（心宜陪思诺）
       const mkRow = (arr) => {
         const row = document.createElement('div'); row.className = 'asoul-live-row';

@@ -44,6 +44,7 @@ export class ChatRoom {
         const data = await request.json();
         const members = (data.members || []).map(m => ({ name: String(m.name).slice(0,20), room: Number(m.room)||0, live: !!m.live, title: String(m.title||"").slice(0,60), url: String(m.url||"") }));
         await this.state.storage.put("asoulLive", members);
+        await this.state.storage.put("liveUpdated", Date.now());
         return new Response(JSON.stringify({ ok: true, count: members.length }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
       } catch (e) {
         return new Response(JSON.stringify({ ok: false }), { status: 400 });
@@ -59,7 +60,8 @@ export class ChatRoom {
         { name: "心宜", room: 30849777, live: false, title: "", url: "https://live.bilibili.com/30849777" },
         { name: "思诺", room: 30858592, live: false, title: "", url: "https://live.bilibili.com/30858592" }
       ];
-      return new Response(JSON.stringify({ members }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      const updated = await this.state.storage.get("liveUpdated") || Date.now();
+      return new Response(JSON.stringify({ members, updated }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 
     // 路由：/set-live-pass 设置屏幕共享密码（共享者用）——每次设置刷新版本号
@@ -111,6 +113,20 @@ export class ChatRoom {
       if (url.searchParams.get("k") !== "abing-pause-key-2026") { return new Response(JSON.stringify({ ok: false }), { status: 403 }); }
       await this.state.storage.put("messages", []);
       return new Response(JSON.stringify({ ok: true, cleared: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+
+    // 路由：/schedule 读本周直播安排（每周更新）
+    if (pathname === "/schedule") {
+      const sched = await this.state.storage.get("schedule") || [];
+      return new Response(JSON.stringify({ schedule: sched }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+    // 路由：/set-schedule 更新本周安排（主人/鱼，带密钥）
+    if (pathname === "/set-schedule" && request.method === "POST") {
+      if (url.searchParams.get("k") !== "abing-pause-key-2026") { return new Response(JSON.stringify({ ok: false }), { status: 403 }); }
+      let data = {}; try { data = await request.json(); } catch(e){}
+      const sched = Array.isArray(data.schedule) ? data.schedule.slice(0, 20) : [];
+      await this.state.storage.put("schedule", sched);
+      return new Response(JSON.stringify({ ok: true, count: sched.length }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 
     // 路由：/set-paused 暂停/恢复聊天互动（主人控制，带密钥）
