@@ -67,6 +67,13 @@
   #chatName { width:30%; border:1px solid rgba(255,255,255,.2); background:#1a0f2e; color:#e6edf5; border-radius:8px; padding:8px; margin-right:6px; font-size:13px; }
   #chatText { flex:1; border:1px solid rgba(255,255,255,.2); background:#1a0f2e; color:#e6edf5; border-radius:8px; padding:8px; font-size:13px; }
   #chatSend { background:#a855f7; color:#fff; border:none; border-radius:8px; padding:0 14px; margin-left:6px; cursor:pointer; font-size:13px; }
+  #danmuInputBar { display:flex; padding:6px 8px; background:#1a0f2e; border-top:1px solid rgba(255,255,255,.1); }
+  #danmuText { flex:1; border:1px solid rgba(255,255,255,.2); background:#16202d; color:#e6edf5; border-radius:8px; padding:7px; font-size:13px; }
+  #danmuSend { background:#f472b6; color:#fff; border:none; border-radius:8px; padding:0 14px; margin-left:6px; cursor:pointer; font-size:13px; }
+  /* 弹幕层 */
+  #danmuLayer { position:fixed; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:9998; overflow:hidden; }
+  .danmu-item { position:absolute; white-space:nowrap; font-size:18px; font-weight:700; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.8), 0 0 8px rgba(168,85,247,.6); animation:danmuFly linear forwards; }
+  @keyframes danmuFly { from { transform:translateX(100vw); right:0; } to { transform:translateX(-100%); right:0; } }
   #chatResize { position:absolute; bottom:0; right:0; width:16px; height:16px; cursor:nwse-resize; background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,.4) 50%); }
   /* 聊天入口：左中上，更显眼 */
   #chatFab { position:fixed; top:120px; left:20px; padding:12px 20px; border-radius:24px;
@@ -191,6 +198,7 @@
   <button id="watchFab" onclick="toggleWatch()">🎬 一起看</button>
   <button id="liveFab" onclick="toggleLive()">📺 屏幕共享</button>
   <button id="asoulToggle" class="asoul-toggle" onclick="toggleAsoul()">🌙 A-SOUL</button>
+  <div id="danmuLayer"></div>
   <div id="livePanel">
     <div id="liveHead"><span>📺 LiveKit 屏幕共享</span><span><button class="fs-btn" onclick="fs('liveRemote')">⛶ 全屏</button><button id="liveClose" onclick="toggleLive()">×</button></span></div>
     <div id="liveBtns">
@@ -226,6 +234,10 @@
       <input id="chatName" placeholder="昵称" maxlength="20" value="群友">
       <input id="chatText" placeholder="说点什么…" maxlength="500">
       <button id="chatSend" onclick="sendMsg()">发送</button>
+    </div>
+    <div id="danmuInputBar">
+      <input id="danmuText" placeholder="发个弹幕…" maxlength="60">
+      <button id="danmuSend" onclick="sendDanmu()">📨 弹幕</button>
     </div>
     <div id="chatResize"></div>
   </div>
@@ -364,6 +376,7 @@
       const d = JSON.parse(ev.data);
       if (d.type === 'history') { d.messages.forEach(addMsg); }
       else if (d.type === 'chat') { addMsg(d.message); }
+      else if (d.type === 'danmu' && d.message && d.message.text) { showDanmu(d.message); }
       else if (d.type === 'watch' && d.watch && d.watch.url) {
         document.getElementById('watchFrame').src = d.watch.url;
         document.getElementById('watchUrl').value = d.watch.url;
@@ -398,14 +411,35 @@
     const n = document.getElementById('chatName').value.trim() || '匿名';
     if (!t) return;
     if (!ws || ws.readyState !== 1) {
-      document.getElementById('chatText').value = t; // 保留文字
+      document.getElementById('chatText').value = t;
       document.getElementById('chatText').placeholder = '连接中/失败，点一下重试…';
-      connect(); // 主动重连
+      connect();
       return;
     }
     ws.send(JSON.stringify({ type:'chat', name:n, text:t }));
     document.getElementById('chatText').value = '';
   }
+  // 弹幕
+  function sendDanmu(){
+    const t = document.getElementById('danmuText').value.trim();
+    const n = document.getElementById('chatName').value.trim() || '匿名';
+    if (!t || !ws || ws.readyState !== 1) return;
+    ws.send(JSON.stringify({ type:'danmu', name:n, text:t }));
+    document.getElementById('danmuText').value = '';
+  }
+  function showDanmu(m){
+    const layer = document.getElementById('danmuLayer');
+    const el = document.createElement('div');
+    el.className = 'danmu-item';
+    el.textContent = m.name + ': ' + m.text;
+    const top = 10 + Math.random() * 70;
+    el.style.top = top + 'vh';
+    const dur = 5 + Math.random() * 4;
+    el.style.animationDuration = dur + 's';
+    layer.appendChild(el);
+    setTimeout(() => { el.remove(); }, dur * 1000 + 500);
+  }
+  document.getElementById('danmuText').addEventListener('keydown', e => { if (e.key === 'Enter') sendDanmu(); });
   // ---- 粘贴图片发送（自动压缩到 ≤1024px）----
   document.getElementById('chatText').addEventListener('paste', (e) => {
     const items = e.clipboardData && e.clipboardData.items;
