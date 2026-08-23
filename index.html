@@ -493,6 +493,7 @@
       if (pd.pass) {
         const input = prompt('本次屏幕共享需要密码，请输入：');
         if (input !== pd.pass) { setLiveStatus('密码错误，无法观看'); return false; }
+        window._authed = true;
       }
     } catch(e) {}
     const id = 'u' + Math.random().toString(36).slice(2,8);
@@ -540,6 +541,20 @@
       try { await lkJoin(); } catch(e){}
     }
   }, 5000);
+  // 心跳密码检测：已加入的人也要验证（A 设密码后，没输对的踢出）
+  window._authed = false;
+  setInterval(async () => {
+    try {
+      if (lkJoined && !window._authed) {
+        const pd = await (await fetch('https://abing-chat.lct123456y.workers.dev/get-live-pass')).json();
+        if (pd.pass) {
+          const input = prompt('本次屏幕共享需要密码，请输入：');
+          if (input === pd.pass) { window._authed = true; }
+          else { lkRoom.disconnect(); lkJoined = false; window._authed = false; }
+        }
+      }
+    } catch(e){}
+  }, 8000);
   // 用户点击画面 → 解锁声音（浏览器 autoplay 限制）
   document.addEventListener('click', function tryUnlock(){
     const v = document.getElementById('liveRemote');
