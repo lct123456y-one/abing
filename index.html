@@ -229,7 +229,7 @@
   </div>
 
   <div id="chatPanel">
-    <div id="chatHead"><span>💬 a冰闲聊区</span><button id="chatClose" onclick="toggleChat()">×</button></div>    <div id="chatMsgs"></div>
+    <div id="chatHead"><span>💬 a冰闲聊区 <span id="wsDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f87171;margin-left:6px;"></span><span id="wsTxt" style="font-size:11px;color:#ddd;">连接中</span></span><button id="chatClose" onclick="toggleChat()">×</button></div>    <div id="chatMsgs"></div>
     <div id="chatInput">
       <input id="chatName" placeholder="昵称" maxlength="20" value="群友">
       <input id="chatText" placeholder="说点什么…" maxlength="500">
@@ -379,9 +379,9 @@
         // 默认收起：收到同步只更新内容，不自动弹出面板
       }
     };
-    ws.onopen = () => { try { document.getElementById('liveStatus').textContent = '已连接'; } catch(e){} };
+    ws.onopen = () => { try { document.getElementById('wsDot').style.background = '#22c55e'; document.getElementById('wsTxt').textContent = '已连接'; } catch(e){} };
     ws.onerror = () => { setTimeout(connect, 3000); };
-    ws.onclose = () => { setTimeout(connect, 3000); };
+    ws.onclose = () => { try { document.getElementById('wsDot').style.background = '#f87171'; document.getElementById('wsTxt').textContent = '未连接'; } catch(e){} setTimeout(connect, 3000); };
   }
   function addMsg(m){
     if (!m || (!m.text && !m.image)) return;
