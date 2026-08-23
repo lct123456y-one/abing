@@ -333,7 +333,20 @@
     });
   }
   let ws = null;
+  let pollMode = false, lastMsgTime = 0, wsFail = 0;
   function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }
+  // HTTP 轮询降级（wss 连不上时用）
+  function startPolling(){
+    if (pollMode) return;
+    pollMode = true;
+    setInterval(async () => {
+      try {
+        const r = await fetch('https://abing-chat.lct123456y.workers.dev/chat-his');
+        const d = await r.json();
+        (d.messages || []).forEach(m => { if (m.time > lastMsgTime) { lastMsgTime = m.time; addMsg(m); } });
+      } catch(e){}
+    }, 2500);
+  }
 
   // ---- 通用拖动（标题栏，鼠标+触屏）----
   function makeDraggable(panel, head){
@@ -379,9 +392,9 @@
         // 默认收起：收到同步只更新内容，不自动弹出面板
       }
     };
-    ws.onopen = () => { try { document.getElementById('wsDot').style.background = '#22c55e'; document.getElementById('wsTxt').textContent = '已连接'; } catch(e){} };
-    ws.onerror = () => { setTimeout(connect, 3000); };
-    ws.onclose = () => { try { document.getElementById('wsDot').style.background = '#f87171'; document.getElementById('wsTxt').textContent = '未连接'; } catch(e){} setTimeout(connect, 3000); };
+    ws.onopen = () => { wsFail = 0; try { document.getElementById('wsDot').style.background = '#22c55e'; document.getElementById('wsTxt').textContent = '已连接'; } catch(e){} };
+    ws.onerror = () => { wsFail++; if (wsFail > 2) { startPolling(); } else { setTimeout(connect, 3000); } };
+    ws.onclose = () => { try { document.getElementById('wsDot').style.background = '#f87171'; document.getElementById('wsTxt').textContent = '未连接'; } catch(e){} wsFail++; if (wsFail > 2) { startPolling(); } else { setTimeout(connect, 3000); } };
   }
   function addMsg(m){
     if (!m || (!m.text && !m.image)) return;
@@ -406,6 +419,15 @@
     const t = document.getElementById('chatText').value.trim();
     const n = document.getElementById('chatName').value.trim() || '匿名';
     if (!t) return;
+    if (pollMode) {
+      // 轮询模式：HTTP 发送
+      fetch('https://abing-chat.lct123456y.workers.dev/chat-send', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type:'chat', name:n, text:t })
+      }).then(() => { addMsg({ name:n, text:t, time: Date.now() }); }).catch(()=>{});
+      document.getElementById('chatText').value = '';
+      return;
+    }
     if (!ws || ws.readyState !== 1) {
       document.getElementById('chatText').value = t;
       document.getElementById('chatText').placeholder = '连接中/失败，点一下重试…';
