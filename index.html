@@ -113,13 +113,13 @@
   #liveHint { color:#8b7aa8; font-size:12px; padding:6px 12px; }
 
   /* A-SOUL 右侧栏（直播状态 + 本周安排）*/
-  .asoul-side { position:fixed; right:0; top:0; width:280px; height:100vh; padding:20px 16px;
+  .asoul-side { position:fixed; right:0; top:0; width:330px; height:100vh; padding:20px 16px;
     background:rgba(20,12,40,.85); backdrop-filter:blur(10px); border-left:1px solid rgba(255,255,255,.1);
     overflow-y:auto; z-index:90; }
   .asoul-side h3 { color:#e9d5ff; font-size:16px; margin-bottom:14px; letter-spacing:1px; border-bottom:1px solid rgba(168,85,247,.3); padding-bottom:8px; }
-  .asoul-live-row { display:flex; gap:4px; margin-bottom:6px; }
-  .asoul-live-card, .asoul-sleep-card { flex:1 1 44px; text-align:center; }
-  .asoul-live-card img, .asoul-sleep-card img { width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,.2); display:block; margin:0 auto 3px; }
+  .asoul-live-row { display:flex; gap:6px; margin-bottom:6px; }
+  .asoul-live-card, .asoul-sleep-card { flex:1 1 50px; text-align:center; }
+  .asoul-live-card img, .asoul-sleep-card img { width:48px; height:48px; border-radius:50%; border:2px solid rgba(255,255,255,.2); display:block; margin:0 auto 3px; }
   .asoul-live-card .nm, .asoul-sleep-card .nm { color:#d8c9f5; font-size:11px; display:block; }
   .asoul-live-card .dot { display:block; width:8px; height:8px; border-radius:50%; background:#555; margin:2px auto 0; }
   .asoul-live-card.online img { border-color:#22c55e; box-shadow:0 0 12px rgba(34,197,94,.6); }
@@ -208,15 +208,26 @@
     try {
       const res = await fetch('https://abing-chat.lct123456y.workers.dev/asoul-live');
       const data = await res.json();
-      const rows = document.getElementById('asoulLive');
-      rows.innerHTML = '';
-      data.members.forEach(m => {
-        const card = document.createElement('a');
-        card.className = 'asoul-live-card' + (m.live ? ' online' : '');
-        card.href = m.url; card.target = '_blank';
-        card.innerHTML = '<img src="' + (ASOUL.find(x => x.name === m.name)?.img || '') + '"><span class="nm">' + m.name + '</span><span class="dot"></span>' + (m.live ? '<span>开播中</span>' : '');
-        rows.appendChild(card);
-      });
+      const wrap = document.getElementById('asoulLive');
+      wrap.innerHTML = '';
+      // 3+2 分组：前3一排，后2一排（心宜陪思诺）
+      const mkRow = (arr) => {
+        const row = document.createElement('div'); row.className = 'asoul-live-row';
+        arr.forEach(m => {
+          const card = document.createElement('a');
+          card.className = 'asoul-live-card' + (m.live ? ' online' : '');
+          card.href = m.url; card.target = '_blank';
+          card.innerHTML = '<img src="' + (ASOUL.find(x => x.name === m.name)?.img || '') + '"><span class="nm">' + m.name + '</span><span class="dot"></span>' + (m.live ? '<span>开播中</span>' : '');
+          row.appendChild(card);
+        });
+        return row;
+      };
+      if (data.members.length >= 5) {
+        wrap.appendChild(mkRow(data.members.slice(0, 3)));
+        wrap.appendChild(mkRow(data.members.slice(3)));
+      } else {
+        wrap.appendChild(mkRow(data.members));
+      }
     } catch(e) {}
   }
   // 本周安排（示例，主人每周更新）
