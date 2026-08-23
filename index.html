@@ -334,7 +334,10 @@
   }
   let ws = null;
   let pollMode = false, lastMsgTime = 0, wsFail = 0;
-  function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }\n  var _paused = false;\n  function setPaused(p){ _paused = p; if(p){ try{ document.getElementById('wsTxt').textContent = '已暂停'; document.getElementById('wsDot').style.background = '#f59e0b'; }catch(e){} } }\n  function pausedBlock(){ if(_paused){ alert('管理员已暂停互动，请稍候~'); return true; } return false; }
+  function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }
+  var _paused = false;
+  function setPaused(p){ _paused = p; if(p){ try{ document.getElementById('wsTxt').textContent = '已暂停'; document.getElementById('wsDot').style.background = '#f59e0b'; }catch(e){} } }
+  function pausedBlock(){ if(_paused){ alert('管理员已暂停互动，请稍候~'); return true; } return false; }
   // HTTP 轮询降级（wss 连不上时用）
   function startPolling(){
     if (pollMode) return;
