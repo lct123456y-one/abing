@@ -132,6 +132,11 @@
   .asoul-sched .item { color:#d8c9f5; padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.06); }
   .asoul-sched .item .m { font-weight:600; }
   .asoul-sched .item .t { color:#a78bfa; }
+  .asoul-sleep-divider { display:flex; align-items:center; gap:8px; margin:14px 0 10px; color:#8b7aa8; font-size:12px; }
+  .asoul-sleep-divider::before, .asoul-sleep-divider::after { content:""; flex:1; height:1px; background:rgba(168,85,247,.3); }
+  .asoul-sleep-card { flex:1 1 45px; text-align:center; opacity:.75; }
+  .asoul-sleep-card img { width:48px; height:48px; border-radius:50%; border:2px solid rgba(255,255,255,.15); display:block; margin:0 auto 4px; filter:grayscale(.4); }
+  .asoul-sleep-card .nm { color:#a896c9; font-size:11px; }
 </style>
 </head>
 <body>
@@ -183,6 +188,8 @@
   <div class="asoul-side">
     <h3>🌸 A-SOUL · 直播</h3>
     <div class="asoul-live-row" id="asoulLive"></div>
+    <div class="asoul-sleep-divider"><span>💤 只是睡着了...</span></div>
+    <div class="asoul-live-row" id="asoulSleep"></div>
     <h3>🗓️ 本周直播安排</h3>
     <div class="asoul-sched" id="asoulSched"></div>
   </div>
@@ -235,6 +242,21 @@
     });
   }
   loadAsoul(); renderSched();
+  // "睡着了"成员（向晚/珈乐）
+  const SLEEP = [
+    { name: "向晚", img: "./asoul-xiangwan.jpg", uid: "672346917" },
+    { name: "珈乐", img: "./asoul-jiale.jpg", uid: "351609538" }
+  ];
+  (function(){
+    const box = document.getElementById('asoulSleep');
+    SLEEP.forEach(s => {
+      const a = document.createElement('a');
+      a.className = 'asoul-sleep-card';
+      a.href = 'https://space.bilibili.com/' + s.uid; a.target = '_blank';
+      a.innerHTML = '<img src="' + s.img + '"><span class="nm">' + s.name + ' 💤</span>';
+      box.appendChild(a);
+    });
+  })();
   setInterval(loadAsoul, 60000);
 
   function copyQQ(){
