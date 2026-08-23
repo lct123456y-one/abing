@@ -496,11 +496,15 @@
     const { token, url } = await lkGetToken(id);
     // 事件监听放在 connect 前，确保不漏早期订阅
     lkRoom.on('trackSubscribed', (track, pub, participant) => {
-      // 放宽：任何非本地的 video 流都显示（避免 source 字符串不匹配）
-      if (track.kind === 'video' && participant.identity !== lkRoom.localParticipant.identity) {
+      if (participant.identity === lkRoom.localParticipant.identity) return;
+      // 视频 + 音频都 attach 到 liveRemote（video 元素同时输出画面和声音）
+      if (track.kind === 'video' || track.kind === 'audio') {
         track.attach(document.getElementById('liveRemote'));
+        document.getElementById('liveRemote').muted = false;
         document.getElementById('livePanel').classList.add('show');
         setLiveStatus('正在观看共享屏幕');
+        // 尝试播放声音（用户已交互过可发声）
+        const v = document.getElementById('liveRemote'); v.play().catch(function(){});
       }
     });
     lkRoom.on('trackUnsubscribed', (track) => { track.detach(); });
@@ -516,6 +520,10 @@
       await lkJoin();
       const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       await lkRoom.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: 'screen_share', name: 'screen' });
+      // 发布音频（屏幕共享的声音/系统声/麦克风）
+      if (screen.getAudioTracks().length > 0) {
+        await lkRoom.localParticipant.publishTrack(screen.getAudioTracks()[0], { source: 'microphone', name: 'screen-audio' });
+      }
       document.getElementById('liveLocal').srcObject = screen;
       document.getElementById('livePreview').style.display = 'block';
       setLiveStatus(pass ? ('共享中 ✓ 已设密码：' + pass) : '共享中 ✓（无密码，谁都能看）');
