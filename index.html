@@ -111,6 +111,27 @@
   #liveWatch { flex:1; padding:0 12px; }
   #liveRemote { width:100%; height:100%; border-radius:8px; }
   #liveHint { color:#8b7aa8; font-size:12px; padding:6px 12px; }
+
+  /* A-SOUL 右侧栏（直播状态 + 本周安排）*/
+  .asoul-side { position:fixed; right:0; top:0; width:280px; height:100vh; padding:20px 16px;
+    background:rgba(20,12,40,.85); backdrop-filter:blur(10px); border-left:1px solid rgba(255,255,255,.1);
+    overflow-y:auto; z-index:90; }
+  .asoul-side h3 { color:#e9d5ff; font-size:16px; margin-bottom:14px; letter-spacing:1px; border-bottom:1px solid rgba(168,85,247,.3); padding-bottom:8px; }
+  .asoul-live-row { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .asoul-live-card { flex:1 1 45px; text-align:center; }
+  .asoul-live-card img { width:48px; height:48px; border-radius:50%; border:2px solid rgba(255,255,255,.2); display:block; margin:0 auto 4px; }
+  .asoul-live-card .nm { color:#d8c9f5; font-size:11px; }
+  .asoul-live-card .dot { display:block; width:8px; height:8px; border-radius:50%; background:#555; margin:2px auto 0; }
+  .asoul-live-card.online img { border-color:#22c55e; box-shadow:0 0 12px rgba(34,197,94,.6); }
+  .asoul-live-card.online .dot { background:#22c55e; animation:blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  .asoul-live-card a { color:#e9d5ff; font-size:10px; text-decoration:none; display:block; }
+  .asoul-live-card.online a { color:#4ade80; }
+  .asoul-sched { font-size:13px; }
+  .asoul-sched .day { color:#f0abfc; font-weight:700; margin-top:10px; margin-bottom:4px; }
+  .asoul-sched .item { color:#d8c9f5; padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,.06); }
+  .asoul-sched .item .m { font-weight:600; }
+  .asoul-sched .item .t { color:#a78bfa; }
 </style>
 </head>
 <body>
@@ -151,8 +172,7 @@
   </div>
 
   <div id="chatPanel">
-    <div id="chatHead"><span>💬 a冰闲聊区</span><button id="chatClose" onclick="toggleChat()">×</button></div>
-    <div id="chatMsgs"></div>
+    <div id="chatHead"><span>💬 a冰闲聊区</span><button id="chatClose" onclick="toggleChat()">×</button></div>    <div id="chatMsgs"></div>
     <div id="chatInput">
       <input id="chatName" placeholder="昵称" maxlength="20" value="群友">
       <input id="chatText" placeholder="说点什么…" maxlength="500">
@@ -160,11 +180,65 @@
     </div>
     <div id="chatResize"></div>
   </div>
+  <div class="asoul-side">
+    <h3>🌸 A-SOUL · 直播</h3>
+    <div class="asoul-live-row" id="asoulLive"></div>
+    <h3>🗓️ 本周直播安排</h3>
+    <div class="asoul-sched" id="asoulSched"></div>
+  </div>
 <script src="./livekit-client.umd.min.js"></script>
 <script>
+  // A-SOUL 成员（头像 + 房间）
+  const ASOUL = [
+    { name: "嘉然", img: "./asoul-jiaran.jpg", room: 22637261 },
+    { name: "乃琳", img: "./asoul-nailin.jpg", room: 22625027 },
+    { name: "贝拉", img: "./asoul-beila.jpg", room: 22632424 },
+    { name: "心宜", img: "./asoul-xinyi.jpg", room: 30849777 },
+    { name: "思诺", img: "./asoul-sinuo.jpg", room: 30858592 }
+  ];
+  // ---- A-SOUL 直播状态 + 安排 ----
+  async function loadAsoul(){
+    try {
+      const res = await fetch('https://abing-chat.lct123456y.workers.dev/asoul-live');
+      const data = await res.json();
+      const rows = document.getElementById('asoulLive');
+      rows.innerHTML = '';
+      data.members.forEach(m => {
+        const card = document.createElement('a');
+        card.className = 'asoul-live-card' + (m.live ? ' online' : '');
+        card.href = m.url; card.target = '_blank';
+        card.innerHTML = '<img src="' + (ASOUL.find(x => x.name === m.name)?.img || '') + '"><span class="nm">' + m.name + '</span><span class="dot"></span>' + (m.live ? '<span>开播中</span>' : '');
+        rows.appendChild(card);
+      });
+    } catch(e) {}
+  }
+  // 本周安排（示例，主人每周更新）
+  const SCHED = [
+    { day: "周一", items: [{ m: "嘉然", t: "20:00" }, { m: "乃琳", t: "21:00" }] },
+    { day: "周三", items: [{ m: "贝拉", t: "19:30" }] },
+    { day: "周五", items: [{ m: "思诺", t: "20:30" }, { m: "心宜", t: "22:00" }] },
+    { day: "周六", items: [{ m: "嘉然", t: "19:00" }] }
+  ];
+  function renderSched(){
+    const box = document.getElementById('asoulSched');
+    box.innerHTML = '';
+    SCHED.forEach(d => {
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'day'; dayDiv.textContent = '· ' + d.day;
+      box.appendChild(dayDiv);
+      d.items.forEach(it => {
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.innerHTML = '<span class="m">' + it.m + '</span><span class="t">' + it.t + '</span>';
+        box.appendChild(row);
+      });
+    });
+  }
+  loadAsoul(); renderSched();
+  setInterval(loadAsoul, 60000);
+
   function copyQQ(){
-    navigator.clipboard.writeText("1098549767").then(()=>{
-      const b = document.querySelector(".copy");
+    navigator.clipboard.writeText("1098549767").then(()=>{      const b = document.querySelector(".copy");
       b.textContent = "已复制 ✓";
       setTimeout(()=>{ b.textContent = "复制群号"; }, 1500);
     });
