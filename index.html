@@ -141,15 +141,20 @@
 
   /* 手机端适配 */
   @media (max-width: 768px) {
-    body { padding: 10px; align-items: flex-start; }
-    .card { padding: 28px 20px; max-width: 100%; }
+    body { padding: 0; align-items: center; }
+    /* 主卡片：屏幕中央当背景 */
+    .card { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); max-width: 88%; padding: 28px 20px; }
     h1 { font-size: 32px; }
     .qq { font-size: 28px; }
-    /* 右侧 A-SOUL 栏改为页面底部纵向 */
-    .asoul-side { position: static; width: 100%; height: auto; border-left: none; border-top: 1px solid rgba(255,255,255,.1); margin-top: 16px; }
-    .asoul-live-row { gap: 10px; }
-    /* 浮动按钮改成顶部一行小按钮 */
-    #chatFab, #watchFab, #liveFab { position: static; display: inline-block; padding: 8px 12px; font-size: 13px; margin: 0 4px 0 0; }
+    /* 三个功能按钮：屏幕最左侧竖排 */
+    #chatFab, #watchFab, #liveFab { position: fixed; left: 4px; padding: 10px 8px; font-size: 12px; margin: 0; border-radius: 12px; writing-mode: vertical-rl; }
+    #chatFab { top: 90px; }
+    #watchFab { top: 160px; }
+    #liveFab { top: 230px; }
+    /* A-SOUL 直播栏：抽屉（右侧滑入/滑出）*/
+    .asoul-side { position: fixed; right: -300px; top: 0; width: 270px; height: 100vh; transition: right .3s; border-left: 1px solid rgba(255,255,255,.15); }
+    .asoul-side.open { right: 0; }
+    .asoul-toggle { position: fixed; right: 0; top: 50%; transform: translateY(-50%); background: linear-gradient(90deg,#a855f7,#ec4899); color:#fff; border:none; border-radius: 10px 0 0 10px; padding: 14px 6px; cursor:pointer; font-size:14px; writing-mode: vertical-rl; z-index:95; }
     /* 面板手机端全屏 */
     #chatPanel, #watchPanel, #livePanel { width: 100vw; height: 80vh; left: 0; right: 0; bottom: 0; border-radius: 0; }
     #watchPanel { height: 70vh; }
@@ -172,6 +177,7 @@
   <button id="chatFab" onclick="toggleChat()">💬 闲聊</button>
   <button id="watchFab" onclick="toggleWatch()">🎬 一起看</button>
   <button id="liveFab" onclick="toggleLive()">📺 屏幕共享</button>
+  <button id="asoulToggle" class="asoul-toggle" onclick="toggleAsoul()">🌙 A-SOUL</button>
   <div id="livePanel">
     <div id="liveHead"><span>📺 LiveKit 屏幕共享</span><button id="liveClose" onclick="toggleLive()">×</button></div>
     <div id="liveBtns">
@@ -442,6 +448,7 @@
   const lkRoom = new LivekitClient.Room();
   let lkJoined = false;
   function toggleLive(){ document.getElementById('livePanel').classList.toggle('show'); }
+  function toggleAsoul(){ document.querySelector('.asoul-side').classList.toggle('open'); }
   function setLiveStatus(s){ document.getElementById('liveStatus').textContent = s; }
   async function lkGetToken(identity){
     const res = await fetch('https://abing-chat.lct123456y.workers.dev/token?identity=' + encodeURIComponent(identity) + '&room=abing');
