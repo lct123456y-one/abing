@@ -120,6 +120,14 @@
   .asoul-toggle { position:fixed; right:0; top:50%; transform:translateY(-50%); background:linear-gradient(90deg,#a855f7,#ec4899); color:#fff; border:none; border-radius:10px 0 0 10px; padding:14px 6px; cursor:pointer; font-size:14px; writing-mode:vertical-rl; z-index:95; }
   .fs-btn { background:none; border:1px solid rgba(255,255,255,.4); color:#fff; border-radius:6px; padding:3px 8px; margin-right:8px; font-size:12px; cursor:pointer; }
   .fs-btn:hover { background:rgba(255,255,255,.15); }
+  /* 全屏控件条 */
+  #liveControls { display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,.7); padding:10px 12px; justify-content:center; align-items:center; gap:10px; z-index:200; }
+  #liveControls button { background:rgba(255,255,255,.15); color:#fff; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:14px; }
+  #liveControls input[type=range] { width:120px; }
+  #livePanel:fullscreen #liveControls { display:flex; }
+  #livePanel:fullscreen #liveHint { display:none; }
+  #livePanel:fullscreen #liveWatch { flex:1; padding:0; }
+  #livePanel:fullscreen #liveRemote { width:100%; height:100%; }
   .asoul-side h3 { color:#e9d5ff; font-size:16px; margin-bottom:14px; letter-spacing:1px; border-bottom:1px solid rgba(168,85,247,.3); padding-bottom:8px; }
   .asoul-live-row { display:flex; gap:6px; margin-bottom:8px; }
   #asoulLive { display:block; }
@@ -189,6 +197,12 @@
     </div>
     <div id="livePreview"><video id="liveLocal" autoplay muted playsinline></video></div>
     <div id="liveWatch"><video id="liveRemote" autoplay playsinline style="background:#000"></video></div>
+    <div id="liveControls">
+      <button onclick="back10()">⏪ 10s</button>
+      <button onclick="fwd10()">10s ⏩</button>
+      <input id="vol" type="range" min="0" max="1" step="0.1" value="1" oninput="setVol(this.value)">
+      <button onclick="exitFs()">× 退出</button>
+    </div>
     <div id="liveHint">共享者：点「我共享屏幕」选要共享的窗口；其他人自动看到，声音也会带上</div>
   </div>
   <div id="watchPanel">
@@ -454,9 +468,13 @@
   function toggleAsoul(){ document.querySelector('.asoul-side').classList.toggle('open'); }
   function fs(id){
     const el = document.getElementById(id);
-    if (el.requestFullscreen) el.requestFullscreen();
+    if (el.requestFullscreen) { el.requestFullscreen().then(()=>{ try { screen.orientation.lock('landscape'); } catch(e){} }); }
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
   }
+  function exitFs(){ if (document.exitFullscreen) document.exitFullscreen(); }
+  function setVol(v){ document.getElementById('liveRemote').volume = parseFloat(v); }
+  function back10(){ const v = document.getElementById('liveRemote'); v.currentTime = Math.max(0, v.currentTime - 10); }
+  function fwd10(){ const v = document.getElementById('liveRemote'); v.currentTime = v.currentTime + 10; }
   function setLiveStatus(s){ document.getElementById('liveStatus').textContent = s; }
   async function lkGetToken(identity){
     const res = await fetch('https://abing-chat.lct123456y.workers.dev/token?identity=' + encodeURIComponent(identity) + '&room=abing');
