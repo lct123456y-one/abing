@@ -82,6 +82,26 @@
   #watchFrame { flex:1; border:none; background:#000; }
   #watchHint { color:#7a8b9c; font-size:12px; padding:6px 12px; }
   #watchResize { position:absolute; bottom:0; right:0; width:16px; height:16px; cursor:nwse-resize; background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,.4) 50%); }
+
+  /* LiveKit 面板 */
+  #liveFab { position:fixed; top:260px; left:20px; padding:12px 20px; border-radius:24px;
+    background:linear-gradient(90deg,#7c3aed,#a78bfa); color:#fff; font-size:16px; font-weight:700;
+    border:none; cursor:pointer; box-shadow:0 6px 20px rgba(124,58,237,.5); z-index:98; }
+  #liveFab:hover { transform:scale(1.05); }
+  #livePanel { display:none; position:fixed; bottom:20px; left:20px; width:560px; height:440px;
+    background:#1e2a38; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.5);
+    flex-direction:column; overflow:hidden; z-index:99; border:1px solid rgba(255,255,255,.1); }
+  #livePanel.show { display:flex; }
+  #liveHead { background:linear-gradient(90deg,#7c3aed,#a78bfa); color:#fff; padding:10px 16px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; cursor:move; }
+  #liveClose { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; }
+  #liveBtns { display:flex; align-items:center; gap:10px; padding:10px 12px; }
+  #shareBtn { background:#7c3aed; color:#fff; border:none; border-radius:8px; padding:10px 18px; cursor:pointer; font-size:14px; font-weight:700; }
+  #liveStatus { color:#7a8b9c; font-size:13px; }
+  #livePreview { display:none; padding:0 12px; }
+  #liveLocal { width:100%; max-height:180px; border-radius:8px; background:#000; margin-bottom:8px; }
+  #liveWatch { flex:1; padding:0 12px; }
+  #liveRemote { width:100%; height:100%; border-radius:8px; }
+  #liveHint { color:#7a8b9c; font-size:12px; padding:6px 12px; }
 </style>
 </head>
 <body>
@@ -98,6 +118,17 @@
 
   <button id="chatFab" onclick="toggleChat()">💬 闲聊</button>
   <button id="watchFab" onclick="toggleWatch()">🎬 一起看</button>
+  <button id="liveFab" onclick="toggleLive()">📺 屏幕共享</button>
+  <div id="livePanel">
+    <div id="liveHead"><span>📺 LiveKit 屏幕共享</span><button id="liveClose" onclick="toggleLive()">×</button></div>
+    <div id="liveBtns">
+      <button id="shareBtn" onclick="startShare()">🖥️ 我共享屏幕</button>
+      <span id="liveStatus">未连接</span>
+    </div>
+    <div id="livePreview"><video id="liveLocal" autoplay muted playsinline></video></div>
+    <div id="liveWatch"><video id="liveRemote" autoplay playsinline style="background:#000"></video></div>
+    <div id="liveHint">共享者：点「我共享屏幕」选要共享的窗口；其他人自动看到，声音也会带上</div>
+  </div>
   <div id="watchPanel">
     <div id="watchHead"><span>🎬 一起看</span><button id="watchClose" onclick="toggleWatch()">×</button></div>
     <div id="watchInput">
@@ -119,6 +150,7 @@
     </div>
     <div id="chatResize"></div>
   </div>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
 <script>
   function copyQQ(){
     navigator.clipboard.writeText("1098549767").then(()=>{
@@ -264,6 +296,48 @@
     document.getElementById('watchFrame').src = url;
   }
   document.getElementById('watchUrl').addEventListener('keydown', e => { if (e.key === 'Enter') sendWatch(); });
+
+  // ---- LiveKit 屏幕共享 ----
+  const lkRoom = new LivekitClient.Room();
+  let lkJoined = false;
+  function toggleLive(){ document.getElementById('livePanel').classList.toggle('show'); }
+  function setLiveStatus(s){ document.getElementById('liveStatus').textContent = s; }
+  async function lkGetToken(identity){
+    const res = await fetch('https://abing-chat.lct123456y.workers.dev/token?identity=' + encodeURIComponent(identity) + '&room=abing');
+    return await res.json();
+  }
+  async function lkJoin(){
+    if (lkJoined) return true;
+    const id = 'u' + Math.random().toString(36).slice(2,8);
+    const { token, url } = await lkGetToken(id);
+    await lkRoom.connect(url, token);
+    lkJoined = true;
+    lkRoom.on('trackSubscribed', (track, pub, participant) => {
+      if (track.kind === 'video' && pub.source === LivekitClient.TrackSource.ScreenShare) {
+        track.attach(document.getElementById('liveRemote'));
+      }
+    });
+    lkRoom.on('trackUnsubscribed', (track) => { track.detach(); });
+    return true;
+  }
+  async function startShare(){
+    try {
+      await lkJoin();
+      const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      await lkRoom.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: LivekitClient.TrackSource.ScreenShare, name: 'screen' });
+      document.getElementById('liveLocal').srcObject = screen;
+      document.getElementById('livePreview').style.display = 'block';
+      setLiveStatus('共享中 ✓（其他人已看到你的屏幕）');
+    } catch(e){
+      setLiveStatus('共享失败：' + e.message);
+    }
+  }
+  // 观众自动加入（打开面板时）
+  setInterval(async () => {
+    if (document.getElementById('livePanel').classList.contains('show') && !lkJoined) {
+      try { await lkJoin(); setLiveStatus('已连接（等待共享）'); } catch(e){}
+    }
+  }, 5000);
 </script>
 </body>
 </html>
