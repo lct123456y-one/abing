@@ -190,13 +190,13 @@
   <button id="liveFab" onclick="toggleLive()">📺 屏幕共享</button>
   <button id="asoulToggle" class="asoul-toggle" onclick="toggleAsoul()">🌙 A-SOUL</button>
   <div id="livePanel">
-    <div id="liveHead"><span>📺 LiveKit 屏幕共享</span><span><button class="fs-btn" onclick="fs('livePanel')">⛶ 全屏</button><button id="liveClose" onclick="toggleLive()">×</button></span></div>
+    <div id="liveHead"><span>📺 LiveKit 屏幕共享</span><span><button class="fs-btn" onclick="fs('liveRemote')">⛶ 全屏</button><button id="liveClose" onclick="toggleLive()">×</button></span></div>
     <div id="liveBtns">
       <button id="shareBtn" onclick="startShare()">🖥️ 我共享屏幕</button>
       <span id="liveStatus">未连接</span>
     </div>
     <div id="livePreview"><video id="liveLocal" autoplay muted playsinline></video></div>
-    <div id="liveWatch"><video id="liveRemote" autoplay playsinline style="background:#000"></video></div>
+    <div id="liveWatch"><video id="liveRemote" autoplay playsinline controls style="background:#000"></video></div>
     <div id="liveControls">
       <button onclick="back10()">⏪ 10s</button>
       <button onclick="fwd10()">10s ⏩</button>
@@ -206,7 +206,7 @@
     <div id="liveHint">共享者：点「我共享屏幕」选要共享的窗口；其他人自动看到，声音也会带上</div>
   </div>
   <div id="watchPanel">
-    <div id="watchHead"><span>🎬 一起看</span><span><button class="fs-btn" onclick="fs('watchPanel')">⛶ 全屏</button><button id="watchClose" onclick="toggleWatch()">×</button></span></div>
+    <div id="watchHead"><span>🎬 一起看</span><span><button class="fs-btn" onclick="fs('watchFrame')">⛶ 全屏</button><button id="watchClose" onclick="toggleWatch()">×</button></span></div>
     <div id="watchInput">
       <input id="watchUrl" placeholder="贴 B站视频/直播链接 或 网页地址…" maxlength="500">
       <button id="watchGo" onclick="sendWatch()">播放</button>
