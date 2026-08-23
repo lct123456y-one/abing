@@ -106,6 +106,13 @@ export class ChatRoom {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 
+    // 路由：/clear-messages 清空聊天记录（主人控制，带密钥）
+    if (pathname === "/clear-messages") {
+      if (url.searchParams.get("k") !== "abing-pause-key-2026") { return new Response(JSON.stringify({ ok: false }), { status: 403 }); }
+      await this.state.storage.put("messages", []);
+      return new Response(JSON.stringify({ ok: true, cleared: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+
     // 路由：/set-paused 暂停/恢复聊天互动（主人控制，带密钥）
     if (pathname === "/set-paused") {
       const k = url.searchParams.get("k");
