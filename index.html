@@ -494,16 +494,18 @@
     } catch(e) {}
     const id = 'u' + Math.random().toString(36).slice(2,8);
     const { token, url } = await lkGetToken(id);
-    await lkRoom.connect(url, token);
-    lkJoined = true;
+    // 事件监听放在 connect 前，确保不漏早期订阅
     lkRoom.on('trackSubscribed', (track, pub, participant) => {
-      if (track.kind === 'video' && pub.source === 'screen_share') {
+      // 放宽：任何非本地的 video 流都显示（避免 source 字符串不匹配）
+      if (track.kind === 'video' && participant.identity !== lkRoom.localParticipant.identity) {
         track.attach(document.getElementById('liveRemote'));
         document.getElementById('livePanel').classList.add('show');
-        setLiveStatus('有人正在共享屏幕');
+        setLiveStatus('正在观看共享屏幕');
       }
     });
     lkRoom.on('trackUnsubscribed', (track) => { track.detach(); });
+    await lkRoom.connect(url, token);
+    lkJoined = true;
     return true;
   }
   async function startShare(){
