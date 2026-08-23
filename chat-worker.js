@@ -60,8 +60,11 @@ export class ChatRoom {
         { name: "心宜", room: 30849777, live: false, title: "", url: "https://live.bilibili.com/30849777" },
         { name: "思诺", room: 30858592, live: false, title: "", url: "https://live.bilibili.com/30858592" }
       ];
-      const updated = await this.state.storage.get("liveUpdated") || Date.now();
-      return new Response(JSON.stringify({ members, updated }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      const updated = await this.state.storage.get("liveUpdated");
+      // 无 liveUpdated 时不返回 updated（避免"0分钟前"误导）
+      const body = { members };
+      if (updated) body.updated = updated;
+      return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 
     // 路由：/set-live-pass 设置屏幕共享密码（共享者用）——每次设置刷新版本号
