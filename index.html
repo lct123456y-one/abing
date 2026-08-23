@@ -334,7 +334,9 @@
   }
   let ws = null;
   let pollMode = false, lastMsgTime = 0, wsFail = 0;
-  function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }
+  var _maintain = true;
+  function maintainBlock(nm){ if(_maintain){ alert(nm + " 功能维护中，请稍候~"); return true; } return false; }
+  function toggleChat(){ if(maintainBlock("闲聊")) return; document.getElementById('chatPanel').classList.toggle('show'); }
   var _paused = false;
   function setPaused(p){ _paused = p; if(p){ try{ document.getElementById('wsTxt').textContent = '已暂停'; document.getElementById('wsDot').style.background = '#f59e0b'; }catch(e){} } }
   function pausedBlock(){ if(_paused){ alert('管理员已暂停互动，请稍候~'); return true; } return false; }
@@ -500,7 +502,7 @@
   connect();
 
   // ---- 一起看 ----
-  function toggleWatch(){ document.getElementById('watchPanel').classList.toggle('show'); }
+  function toggleWatch(){ if(maintainBlock("一起看")) return; document.getElementById('watchPanel').classList.toggle('show'); }
   function biliToEmbed(url){
     let u = url.trim();
     // 纯 BV 号：BVxxxxxxxxxx
@@ -523,7 +525,7 @@
   // ---- LiveKit 屏幕共享 ----
   const lkRoom = new LivekitClient.Room();
   let lkJoined = false;
-  function toggleLive(){ document.getElementById('livePanel').classList.toggle('show'); }
+  function toggleLive(){ if(maintainBlock("屏幕共享")) return; document.getElementById('livePanel').classList.toggle('show'); }
   function toggleAsoul(){ document.querySelector('.asoul-side').classList.toggle('open'); }
   function fs(id){
     const el = document.getElementById(id);
