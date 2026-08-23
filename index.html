@@ -367,7 +367,7 @@
       else if (d.type === 'watch' && d.watch && d.watch.url) {
         document.getElementById('watchFrame').src = d.watch.url;
         document.getElementById('watchUrl').value = d.watch.url;
-        document.getElementById('watchPanel').classList.add('show');
+        // 默认收起：收到同步只更新内容，不自动弹出面板
       }
     };
     ws.onopen = () => { try { document.getElementById('liveStatus').textContent = '已连接'; } catch(e){} };
