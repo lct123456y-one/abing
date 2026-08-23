@@ -262,7 +262,7 @@
   // ---- A-SOUL 直播状态 + 安排 ----
   async function loadAsoul(){
     try {
-      const res = await fetch('https://abing-chat.lct123456y.workers.dev/asoul-live');
+      const res = await fetch('https://chat.abing.wtf/asoul-live');
       const data = await res.json();
       const wrap = document.getElementById('asoulLive');
       wrap.innerHTML = '';
@@ -341,7 +341,7 @@
     pollMode = true;
     setInterval(async () => {
       try {
-        const r = await fetch('https://abing-chat.lct123456y.workers.dev/chat-his');
+        const r = await fetch('https://chat.abing.wtf/chat-his');
         const d = await r.json();
         (d.messages || []).forEach(m => { if (m.time > lastMsgTime) { lastMsgTime = m.time; addMsg(m); } });
       } catch(e){}
@@ -380,7 +380,7 @@
   makeResizable(document.getElementById('watchPanel'), document.getElementById('watchResize'));
 
   function connect(){
-    try { ws = new WebSocket('wss://abing-chat.lct123456y.workers.dev'); } catch(e){ setTimeout(connect, 3000); return; }
+    try { ws = new WebSocket('wss://chat.abing.wtf'); } catch(e){ setTimeout(connect, 3000); return; }
     ws.onmessage = (ev) => {
       const d = JSON.parse(ev.data);
       if (d.type === 'history') { d.messages.forEach(addMsg); }
@@ -421,7 +421,7 @@
     if (!t) return;
     if (pollMode) {
       // 轮询模式：HTTP 发送
-      fetch('https://abing-chat.lct123456y.workers.dev/chat-send', {
+      fetch('https://chat.abing.wtf/chat-send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type:'chat', name:n, text:t })
       }).then(() => { addMsg({ name:n, text:t, time: Date.now() }); }).catch(()=>{});
@@ -533,14 +533,14 @@
   function fwd10(){ const v = document.getElementById('liveRemote'); v.currentTime = v.currentTime + 10; }
   function setLiveStatus(s){ document.getElementById('liveStatus').textContent = s; }
   async function lkGetToken(identity){
-    const res = await fetch('https://abing-chat.lct123456y.workers.dev/token?identity=' + encodeURIComponent(identity) + '&room=abing');
+    const res = await fetch('https://chat.abing.wtf/token?identity=' + encodeURIComponent(identity) + '&room=abing');
     return await res.json();
   }
   async function lkJoin(){
     if (lkJoined) return true;
     // 查密码+版本号：有密码则先验证（比对版本号，换密码后要重验）
     try {
-      const pr = await fetch('https://abing-chat.lct123456y.workers.dev/get-live-pass');
+      const pr = await fetch('https://chat.abing.wtf/get-live-pass');
       const pd = await pr.json();
       if (pd.pass && (!window._authed || window._authedRev !== pd.rev)) {
         const input = prompt('本次屏幕共享需要密码，请输入：');
@@ -572,7 +572,7 @@
     try {
       // 设置密码（可选）：填了则设，没填则清空
       const pass = document.getElementById('livePass').value.trim();
-      await fetch('https://abing-chat.lct123456y.workers.dev/set-live-pass?pass=' + encodeURIComponent(pass));
+      await fetch('https://chat.abing.wtf/set-live-pass?pass=' + encodeURIComponent(pass));
       await lkJoin();
       const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       await lkRoom.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: 'screen_share', name: 'screen' });
@@ -598,7 +598,7 @@
   setInterval(async () => {
     try {
       if (lkJoined) {
-        const pd = await (await fetch('https://abing-chat.lct123456y.workers.dev/get-live-pass')).json();
+        const pd = await (await fetch('https://chat.abing.wtf/get-live-pass')).json();
         if (pd.pass && (!window._authed || window._authedRev !== pd.rev)) {
           const input = prompt('屏幕共享密码已更新，请输入：');
           if (input === pd.pass) { window._authed = true; window._authedRev = pd.rev; }
