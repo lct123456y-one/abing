@@ -64,6 +64,23 @@
     background:linear-gradient(90deg,#409eff,#79bbff); color:#fff; font-size:16px; font-weight:700;
     border:none; cursor:pointer; box-shadow:0 6px 20px rgba(64,158,255,.5); z-index:98; }
   #chatFab:hover { transform:scale(1.05); }
+
+  /* 一起看面板 */
+  #watchFab { position:fixed; top:190px; left:20px; padding:12px 20px; border-radius:24px;
+    background:linear-gradient(90deg,#ff9a3c,#ff6b6b); color:#fff; font-size:16px; font-weight:700;
+    border:none; cursor:pointer; box-shadow:0 6px 20px rgba(255,107,107,.5); z-index:98; }
+  #watchFab:hover { transform:scale(1.05); }
+  #watchPanel { display:none; position:fixed; bottom:20px; left:20px; width:520px; height:420px;
+    background:#1e2a38; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.5);
+    flex-direction:column; overflow:hidden; z-index:99; border:1px solid rgba(255,255,255,.1); }
+  #watchPanel.show { display:flex; }
+  #watchHead { background:linear-gradient(90deg,#ff9a3c,#ff6b6b); color:#fff; padding:10px 16px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; cursor:move; }
+  #watchClose { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; }
+  #watchInput { display:flex; padding:8px; background:#1e2a38; border-bottom:1px solid rgba(255,255,255,.1); }
+  #watchUrl { flex:1; border:1px solid rgba(255,255,255,.2); background:#16202d; color:#e6edf5; border-radius:8px; padding:8px; font-size:13px; }
+  #watchGo { background:#ff6b6b; color:#fff; border:none; border-radius:8px; padding:0 16px; margin-left:6px; cursor:pointer; font-size:13px; }
+  #watchFrame { flex:1; border:none; background:#000; }
+  #watchHint { color:#7a8b9c; font-size:12px; padding:6px 12px; }
 </style>
 </head>
 <body>
@@ -79,6 +96,17 @@
   </div>
 
   <button id="chatFab" onclick="toggleChat()">💬 闲聊</button>
+  <button id="watchFab" onclick="toggleWatch()">🎬 一起看</button>
+  <div id="watchPanel">
+    <div id="watchHead"><span>🎬 一起看</span><button id="watchClose" onclick="toggleWatch()">×</button></div>
+    <div id="watchInput">
+      <input id="watchUrl" placeholder="贴 B站视频/直播链接 或 网页地址…" maxlength="500">
+      <button id="watchGo" onclick="sendWatch()">播放</button>
+    </div>
+    <div id="watchHint">提示：B站视频/直播、mp4、可嵌入的网页都能一起看；防嵌入的网站会白屏</div>
+    <iframe id="watchFrame" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
+  </div>
+
   <div id="chatPanel">
     <div id="chatHead"><span>💬 a冰闲聊区</span><button id="chatClose" onclick="toggleChat()">×</button></div>
     <div id="chatMsgs"></div>
@@ -142,6 +170,11 @@
       const d = JSON.parse(ev.data);
       if (d.type === 'history') { d.messages.forEach(addMsg); }
       else if (d.type === 'chat') { addMsg(d.message); }
+      else if (d.type === 'watch' && d.watch && d.watch.url) {
+        document.getElementById('watchFrame').src = d.watch.url;
+        document.getElementById('watchUrl').value = d.watch.url;
+        document.getElementById('watchPanel').classList.add('show');
+      }
     };
     ws.onclose = () => { setTimeout(connect, 3000); };
   }
@@ -209,6 +242,24 @@
   function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   document.getElementById('chatText').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
   connect();
+
+  // ---- 一起看 ----
+  function toggleWatch(){ document.getElementById('watchPanel').classList.toggle('show'); }
+  function biliToEmbed(url){
+    // B站视频：https://www.bilibili.com/video/BVxxx... -> 嵌入播放器
+    const m = url.match(/bilibili\.com\/video\/(BV[0-9A-Za-z]+)/);
+    if (m) return 'https://player.bilibili.com/player.html?bvid=' + m[1] + '&autoplay=0';
+    return url;
+  }
+  function sendWatch(){
+    const raw = document.getElementById('watchUrl').value.trim();
+    if (!raw || !ws || ws.readyState !== 1) return;
+    const url = biliToEmbed(raw);
+    const name = document.getElementById('chatName').value.trim() || '匿名';
+    ws.send(JSON.stringify({ type:'watch', url:url, name:name }));
+    document.getElementById('watchFrame').src = url;
+  }
+  document.getElementById('watchUrl').addEventListener('keydown', e => { if (e.key === 'Enter') sendWatch(); });
 </script>
 </body>
 </html>
