@@ -489,6 +489,9 @@
     lkRoom.on('trackSubscribed', (track, pub, participant) => {
       if (track.kind === 'video' && pub.source === 'screen_share') {
         track.attach(document.getElementById('liveRemote'));
+        // 有人共享：自动弹出面板让后进的人也能看到
+        document.getElementById('livePanel').classList.add('show');
+        setLiveStatus('有人正在共享屏幕');
       }
     });
     lkRoom.on('trackUnsubscribed', (track) => { track.detach(); });
@@ -506,10 +509,10 @@
       setLiveStatus('共享失败：' + e.message);
     }
   }
-  // 观众自动加入（打开面板时）
+  // 观众自动加入（进网站就 join，A 共享时自动看到；后进来的人也能接上）
   setInterval(async () => {
-    if (document.getElementById('livePanel').classList.contains('show') && !lkJoined) {
-      try { await lkJoin(); setLiveStatus('已连接（等待共享）'); } catch(e){}
+    if (!lkJoined) {
+      try { await lkJoin(); } catch(e){}
     }
   }, 5000);
 </script>
