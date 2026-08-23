@@ -313,7 +313,7 @@
     await lkRoom.connect(url, token);
     lkJoined = true;
     lkRoom.on('trackSubscribed', (track, pub, participant) => {
-      if (track.kind === 'video' && pub.source === LivekitClient.TrackSource.ScreenShare) {
+      if (track.kind === 'video' && pub.source === 'screen_share') {
         track.attach(document.getElementById('liveRemote'));
       }
     });
@@ -324,7 +324,7 @@
     try {
       await lkJoin();
       const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      await lkRoom.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: LivekitClient.TrackSource.ScreenShare, name: 'screen' });
+      await lkRoom.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: 'screen_share', name: 'screen' });
       document.getElementById('liveLocal').srcObject = screen;
       document.getElementById('livePreview').style.display = 'block';
       setLiveStatus('共享中 ✓（其他人已看到你的屏幕）');
