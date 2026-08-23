@@ -142,12 +142,19 @@
     ws.onclose = () => { setTimeout(connect, 3000); };
   }
   function addMsg(m){
-    if (!m || !m.text) return;
+    if (!m || (!m.text && !m.image)) return;
     const box = document.getElementById('chatMsgs');
     const div = document.createElement('div');
     div.className = 'msg';
     const when = new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    div.innerHTML = '<span class="who"></span>' + escapeHtml(m.text) + '<span class="when">' + when + '</span>';
+    let content = '';
+    if (m.image) {
+      content = '<img src="' + m.image + '" style="max-width:100%;max-height:200px;border-radius:8px;display:block;margin-top:4px;" onclick="window.open(this.src)">';
+    }
+    if (m.text) {
+      content = '<div>' + escapeHtml(m.text) + '</div>' + content;
+    }
+    div.innerHTML = '<span class="who"></span>' + content + '<span class="when">' + when + '</span>';
     div.querySelector('.who').textContent = m.name + ':';
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
@@ -156,9 +163,44 @@
   function sendMsg(){
     const t = document.getElementById('chatText').value.trim();
     const n = document.getElementById('chatName').value.trim() || '匿名';
-    if (!t || !ws || ws.readyState !== 1) return;
+    if ((!t || !ws || ws.readyState !== 1)) { if (!t) return; }
+    if (!ws || ws.readyState !== 1) return;
     ws.send(JSON.stringify({ type:'chat', name:n, text:t }));
     document.getElementById('chatText').value = '';
+  }
+  // ---- 粘贴图片发送（自动压缩到 ≤1024px）----
+  document.getElementById('chatText').addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type && items[i].type.indexOf('image') === 0) {
+        const file = items[i].getAsFile();
+        if (file) { e.preventDefault(); sendImage(file); break; }
+      }
+    }
+  });
+  function sendImage(file){
+    const n = document.getElementById('chatName').value.trim() || '匿名';
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        const max = 1024;
+        if (w > max || h > max) {
+          const r = Math.min(max/w, max/h);
+          w = Math.round(w*r); h = Math.round(h*r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const base64 = canvas.toDataURL('image/jpeg', 0.8);
+        if (!ws || ws.readyState !== 1) return;
+        ws.send(JSON.stringify({ type:'chat', name:n, text:'', image:base64 }));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   }
   function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   document.getElementById('chatText').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
