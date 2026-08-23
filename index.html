@@ -316,7 +316,7 @@
   makeResizable(document.getElementById('watchPanel'), document.getElementById('watchResize'));
 
   function connect(){
-    try { ws = new WebSocket('wss://abing-chat.lct123456y.workers.dev'); } catch(e){ return; }
+    try { ws = new WebSocket('wss://abing-chat.lct123456y.workers.dev'); } catch(e){ setTimeout(connect, 3000); return; }
     ws.onmessage = (ev) => {
       const d = JSON.parse(ev.data);
       if (d.type === 'history') { d.messages.forEach(addMsg); }
@@ -327,6 +327,8 @@
         document.getElementById('watchPanel').classList.add('show');
       }
     };
+    ws.onopen = () => { try { document.getElementById('liveStatus').textContent = '已连接'; } catch(e){} };
+    ws.onerror = () => { setTimeout(connect, 3000); };
     ws.onclose = () => { setTimeout(connect, 3000); };
   }
   function addMsg(m){
@@ -351,8 +353,13 @@
   function sendMsg(){
     const t = document.getElementById('chatText').value.trim();
     const n = document.getElementById('chatName').value.trim() || '匿名';
-    if ((!t || !ws || ws.readyState !== 1)) { if (!t) return; }
-    if (!ws || ws.readyState !== 1) return;
+    if (!t) return;
+    if (!ws || ws.readyState !== 1) {
+      document.getElementById('chatText').value = t; // 保留文字
+      document.getElementById('chatText').placeholder = '连接中/失败，点一下重试…';
+      connect(); // 主动重连
+      return;
+    }
     ws.send(JSON.stringify({ type:'chat', name:n, text:t }));
     document.getElementById('chatText').value = '';
   }
