@@ -336,7 +336,7 @@
   }
   let ws = null;
   let pollMode = false, lastMsgTime = 0, wsFail = 0;
-  var _maintain = true;
+  var _maintain = false;
   function maintainBlock(nm){ if(_maintain){ alert(nm + " 功能维护中，请稍候~"); return true; } return false; }
   function toggleChat(){ if(maintainBlock("闲聊")) return; document.getElementById('chatPanel').classList.toggle('show'); }
   var _paused = false;
