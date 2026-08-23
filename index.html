@@ -46,8 +46,8 @@
   #chatPanel { display:none; position:fixed; bottom:20px; right:20px; width:340px; height:480px;
     background:#1e2a38; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.5);
     flex-direction:column; overflow:hidden; z-index:99; border:1px solid rgba(255,255,255,.1); }
-  #chatPanel.show { display:flex; }
-  #chatHead { background:linear-gradient(90deg,#409eff,#79bbff); color:#fff; padding:10px 16px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
+  #chatPanel.dragging { opacity:.85; user-select:none; }
+  #chatHead { background:linear-gradient(90deg,#409eff,#79bbff); color:#fff; padding:10px 16px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; cursor:move; }
   #chatClose { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; }
   #chatMsgs { flex:1; overflow-y:auto; padding:12px; background:#16202d; }
   .msg { margin-bottom:8px; font-size:14px; color:#e6edf5; }
@@ -57,6 +57,7 @@
   #chatName { width:30%; border:1px solid rgba(255,255,255,.2); background:#16202d; color:#e6edf5; border-radius:8px; padding:8px; margin-right:6px; font-size:13px; }
   #chatText { flex:1; border:1px solid rgba(255,255,255,.2); background:#16202d; color:#e6edf5; border-radius:8px; padding:8px; font-size:13px; }
   #chatSend { background:#409eff; color:#fff; border:none; border-radius:8px; padding:0 14px; margin-left:6px; cursor:pointer; font-size:13px; }
+  #chatResize { position:absolute; bottom:0; right:0; width:16px; height:16px; cursor:nwse-resize; background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,.4) 50%); }
   /* 聊天入口：左中上，更显眼 */
   #chatFab { position:fixed; top:120px; left:20px; padding:12px 20px; border-radius:24px;
     background:linear-gradient(90deg,#409eff,#79bbff); color:#fff; font-size:16px; font-weight:700;
@@ -85,6 +86,7 @@
       <input id="chatText" placeholder="说点什么…" maxlength="500">
       <button id="chatSend" onclick="sendMsg()">发送</button>
     </div>
+    <div id="chatResize"></div>
   </div>
 <script>
   function copyQQ(){
@@ -96,6 +98,40 @@
   }
   let ws = null;
   function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }
+  // ---- 拖动 ----
+  (function(){
+    const panel = document.getElementById('chatPanel');
+    const head = document.getElementById('chatHead');
+    let dragging = false, offX = 0, offY = 0;
+    head.addEventListener('mousedown', e => {
+      dragging = true; panel.classList.add('dragging');
+      offX = e.clientX - panel.offsetLeft; offY = e.clientY - panel.offsetTop;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      panel.style.left = e.clientX - offX + 'px';
+      panel.style.top = e.clientY - offY + 'px';
+      panel.style.right = 'auto'; panel.style.bottom = 'auto';
+    });
+    document.addEventListener('mouseup', () => { dragging = false; panel.classList.remove('dragging'); });
+  })();
+  // ---- 缩放（右下角）----
+  (function(){
+    const panel = document.getElementById('chatPanel');
+    const resize = document.getElementById('chatResize');
+    let resizing = false, startX = 0, startY = 0, startW = 0, startH = 0;
+    resize.addEventListener('mousedown', e => {
+      resizing = true; startX = e.clientX; startY = e.clientY;
+      startW = panel.offsetWidth; startH = panel.offsetHeight; e.preventDefault(); e.stopPropagation();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!resizing) return;
+      panel.style.width = Math.max(240, startW + (e.clientX - startX)) + 'px';
+      panel.style.height = Math.max(300, startH + (e.clientY - startY)) + 'px';
+    });
+    document.addEventListener('mouseup', () => { resizing = false; });
+  })();
   function connect(){
     try { ws = new WebSocket('wss://abing-chat.lct123456y.workers.dev'); } catch(e){ return; }
     ws.onmessage = (ev) => {
