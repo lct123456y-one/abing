@@ -81,6 +81,29 @@ export class ChatRoom {
       return new Response(JSON.stringify({ pass, rev }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 
+    // 路由：/chat-his 拉取最近消息（HTTP 轮询，wss 连不上的降级）
+    if (pathname === "/chat-his") {
+      const history = await this.state.storage.get("messages") || [];
+      return new Response(JSON.stringify({ messages: history }), {
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+      });
+    }
+    // 路由：/chat-send 发送消息（HTTP 轮询模式）
+    if (pathname === "/chat-send" && request.method === "POST") {
+      let data = {};
+      try { data = await request.json(); } catch(e) {}
+      const msg = { name: (data.name || "匿名").slice(0, 20), text: (data.text || "").slice(0, 500), time: Date.now() };
+      if (data.image && typeof data.image === "string" && data.image.indexOf("data:image") === 0 && data.image.length < 2000000) {
+        msg.image = data.image;
+      }
+      const history = await this.state.storage.get("messages") || [];
+      history.push(msg);
+      let trimmed = history.length > 100 ? history.slice(-100) : history;
+      await this.state.storage.put("messages", trimmed);
+      for (const s of this.sessions) { try { s.send(JSON.stringify({ type: "chat", message: msg })); } catch (e) {} }
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+
     // 路由：/token 签发 LiveKit token（给屏幕共享用）
     if (pathname === "/token") {
       const identity = url.searchParams.get("identity") || "guest";
@@ -114,9 +137,13 @@ export class ChatRoom {
     }
 
     // 收到消息 -> 广播 + 保存
+    let lastMsgAt = 0; // 该连接上次发消息时间（限速 2 秒一条）
     server.addEventListener("message", async (event) => {
       try {
         const data = JSON.parse(event.data);
+        const now = Date.now();
+        if (now - lastMsgAt < 2000) { return; } // 限速：2 秒内只接受 1 条，防刷屏
+        lastMsgAt = now;
 
         // 一起看：换视频/网页 URL
         if (data.type === "watch") {
