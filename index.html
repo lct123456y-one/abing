@@ -175,9 +175,9 @@
     /* A-SOUL 直播栏抽屉：手机默认收起（点 🌙 拉出）*/
     .asoul-side { width: 270px; right: -290px; }
     .asoul-side.open { right: 0; }
-    /* 面板手机端全屏 */
-    #chatPanel, #watchPanel, #livePanel { width: 100vw; height: 80vh; left: 0; right: 0; bottom: 0; border-radius: 0; }
-    #watchPanel { height: 70vh; }
+    /* 面板手机端：默认缩小（可拖动）*/
+    #chatPanel, #watchPanel, #livePanel { width: 92vw; height: 55vh; left: 4vw; right: auto; bottom: auto; top: 20vh; border-radius: 14px; }
+    #watchPanel { height: 48vh; }
   }
 </style>
 </head>
@@ -335,35 +335,31 @@
   let ws = null;
   function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }
 
-  // ---- 通用拖动（标题栏）----
+  // ---- 通用拖动（标题栏，鼠标+触屏）----
   function makeDraggable(panel, head){
     let dragging = false, offX = 0, offY = 0;
-    head.addEventListener('mousedown', function(e){
-      dragging = true; panel.classList.add('dragging');
-      offX = e.clientX - panel.offsetLeft; offY = e.clientY - panel.offsetTop;
-      e.preventDefault();
-    });
-    document.addEventListener('mousemove', function(e){
-      if (!dragging) return;
-      panel.style.left = (e.clientX - offX) + 'px';
-      panel.style.top = (e.clientY - offY) + 'px';
-      panel.style.right = 'auto'; panel.style.bottom = 'auto';
-    });
-    document.addEventListener('mouseup', function(){ dragging = false; panel.classList.remove('dragging'); });
+    const start = function(x, y){ dragging = true; panel.classList.add('dragging'); offX = x - panel.offsetLeft; offY = y - panel.offsetTop; };
+    const move = function(x, y){ if (!dragging) return; panel.style.left = (x - offX) + 'px'; panel.style.top = (y - offY) + 'px'; panel.style.right = 'auto'; panel.style.bottom = 'auto'; };
+    const stop = function(){ dragging = false; panel.classList.remove('dragging'); };
+    head.addEventListener('mousedown', function(e){ start(e.clientX, e.clientY); e.preventDefault(); });
+    document.addEventListener('mousemove', function(e){ move(e.clientX, e.clientY); });
+    document.addEventListener('mouseup', stop);
+    head.addEventListener('touchstart', function(e){ const t = e.touches[0]; start(t.clientX, t.clientY); }, {passive:true});
+    document.addEventListener('touchmove', function(e){ const t = e.touches[0]; move(t.clientX, t.clientY); }, {passive:true});
+    document.addEventListener('touchend', stop);
   }
-  // ---- 通用缩放（右下角把手）----
+  // ---- 通用缩放（右下角把手，鼠标+触屏）----
   function makeResizable(panel, handle){
     let resizing = false, sx = 0, sy = 0, sw = 0, sh = 0;
-    handle.addEventListener('mousedown', function(e){
-      resizing = true; sx = e.clientX; sy = e.clientY;
-      sw = panel.offsetWidth; sh = panel.offsetHeight; e.preventDefault(); e.stopPropagation();
-    });
-    document.addEventListener('mousemove', function(e){
-      if (!resizing) return;
-      panel.style.width = Math.max(240, sw + (e.clientX - sx)) + 'px';
-      panel.style.height = Math.max(300, sh + (e.clientY - sy)) + 'px';
-    });
-    document.addEventListener('mouseup', function(){ resizing = false; });
+    const start = function(x, y){ resizing = true; sx = x; sy = y; sw = panel.offsetWidth; sh = panel.offsetHeight; };
+    const move = function(x, y){ if (!resizing) return; panel.style.width = Math.max(240, sw + (x - sx)) + 'px'; panel.style.height = Math.max(300, sh + (y - sy)) + 'px'; };
+    const stop = function(){ resizing = false; };
+    handle.addEventListener('mousedown', function(e){ start(e.clientX, e.clientY); e.preventDefault(); e.stopPropagation(); });
+    document.addEventListener('mousemove', function(e){ move(e.clientX, e.clientY); });
+    document.addEventListener('mouseup', stop);
+    handle.addEventListener('touchstart', function(e){ const t = e.touches[0]; start(t.clientX, t.clientY); e.stopPropagation(); }, {passive:true});
+    document.addEventListener('touchmove', function(e){ const t = e.touches[0]; move(t.clientX, t.clientY); }, {passive:true});
+    document.addEventListener('touchend', stop);
   }
   makeDraggable(document.getElementById('chatPanel'), document.getElementById('chatHead'));
   makeResizable(document.getElementById('chatPanel'), document.getElementById('chatResize'));
