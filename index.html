@@ -44,21 +44,24 @@
 
   /* 聊天空窗 */
   #chatPanel { display:none; position:fixed; bottom:20px; right:20px; width:340px; height:480px;
-    background:#fff; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.3);
-    flex-direction:column; overflow:hidden; z-index:99; }
+    background:#1e2a38; border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.5);
+    flex-direction:column; overflow:hidden; z-index:99; border:1px solid rgba(255,255,255,.1); }
   #chatPanel.show { display:flex; }
-  #chatHead { background:#409eff; color:#fff; padding:10px 16px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
+  #chatHead { background:linear-gradient(90deg,#409eff,#79bbff); color:#fff; padding:10px 16px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
   #chatClose { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; }
-  #chatMsgs { flex:1; overflow-y:auto; padding:12px; background:#f5f7fa; }
-  .msg { margin-bottom:8px; font-size:14px; }
-  .msg .who { font-weight:700; color:#409eff; margin-right:6px; }
-  .msg .when { color:#999; font-size:11px; margin-left:6px; }
-  #chatInput { display:flex; border-top:1px solid #eee; padding:8px; background:#fff; }
-  #chatName { width:30%; border:1px solid #ddd; border-radius:8px; padding:8px; margin-right:6px; font-size:13px; }
-  #chatText { flex:1; border:1px solid #ddd; border-radius:8px; padding:8px; font-size:13px; }
+  #chatMsgs { flex:1; overflow-y:auto; padding:12px; background:#16202d; }
+  .msg { margin-bottom:8px; font-size:14px; color:#e6edf5; }
+  .msg .who { font-weight:700; color:#7cb8ff; margin-right:6px; }
+  .msg .when { color:#7a8b9c; font-size:11px; margin-left:6px; }
+  #chatInput { display:flex; border-top:1px solid rgba(255,255,255,.1); padding:8px; background:#1e2a38; }
+  #chatName { width:30%; border:1px solid rgba(255,255,255,.2); background:#16202d; color:#e6edf5; border-radius:8px; padding:8px; margin-right:6px; font-size:13px; }
+  #chatText { flex:1; border:1px solid rgba(255,255,255,.2); background:#16202d; color:#e6edf5; border-radius:8px; padding:8px; font-size:13px; }
   #chatSend { background:#409eff; color:#fff; border:none; border-radius:8px; padding:0 14px; margin-left:6px; cursor:pointer; font-size:13px; }
-  #chatFab { position:fixed; bottom:20px; right:20px; width:56px; height:56px; border-radius:50%;
-    background:#409eff; color:#fff; font-size:26px; border:none; cursor:pointer; box-shadow:0 6px 20px rgba(64,158,255,.5); z-index:98; }
+  /* 聊天入口：左中上，更显眼 */
+  #chatFab { position:fixed; top:120px; left:20px; padding:12px 20px; border-radius:24px;
+    background:linear-gradient(90deg,#409eff,#79bbff); color:#fff; font-size:16px; font-weight:700;
+    border:none; cursor:pointer; box-shadow:0 6px 20px rgba(64,158,255,.5); z-index:98; }
+  #chatFab:hover { transform:scale(1.05); }
 </style>
 </head>
 <body>
@@ -73,7 +76,7 @@
     <div class="tip">Abing.www · 欢迎回家</div>
   </div>
 
-  <button id="chatFab" onclick="toggleChat()">💬</button>
+  <button id="chatFab" onclick="toggleChat()">💬 闲聊</button>
   <div id="chatPanel">
     <div id="chatHead"><span>💬 a冰闲聊区</span><button id="chatClose" onclick="toggleChat()">×</button></div>
     <div id="chatMsgs"></div>
