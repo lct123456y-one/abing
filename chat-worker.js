@@ -90,6 +90,8 @@ export class ChatRoom {
     }
     // 路由：/chat-send 发送消息（HTTP 轮询模式）
     if (pathname === "/chat-send" && request.method === "POST") {
+      const paused = await this.state.storage.get("paused");
+      if (paused) { return new Response(JSON.stringify({ ok: false, paused: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }); }
       let data = {};
       try { data = await request.json(); } catch(e) {}
       const msg = { name: (data.name || "匿名").slice(0, 20), text: (data.text || "").slice(0, 500), time: Date.now() };
@@ -102,6 +104,16 @@ export class ChatRoom {
       await this.state.storage.put("messages", trimmed);
       for (const s of this.sessions) { try { s.send(JSON.stringify({ type: "chat", message: msg })); } catch (e) {} }
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+
+    // 路由：/set-paused 暂停/恢复聊天互动（主人控制，带密钥）
+    if (pathname === "/set-paused") {
+      const k = url.searchParams.get("k");
+      const PAUSE_KEY = "abing-pause-key-2026";
+      if (k !== PAUSE_KEY) { return new Response(JSON.stringify({ ok: false }), { status: 403 }); }
+      const p = url.searchParams.get("p") === "1";
+      await this.state.storage.put("paused", p);
+      return new Response(JSON.stringify({ ok: true, paused: p }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 
     // 路由：/token 签发 LiveKit token（给屏幕共享用）
@@ -128,12 +140,16 @@ export class ChatRoom {
     server.accept();
     this.sessions.add(server);
 
-    // 给新连接发历史消息（最近 100 条）+ 当前"一起看"状态
+    // 给新连接发历史消息（最近 100 条）+ 当前"一起看"状态 + 暂停状态
     const history = await this.state.storage.get("messages") || [];
     server.send(JSON.stringify({ type: "history", messages: history }));
     const watch = await this.state.storage.get("watch");
     if (watch && watch.url) {
       server.send(JSON.stringify({ type: "watch", watch: watch }));
+    }
+    const isPaused = await this.state.storage.get("paused");
+    if (isPaused) {
+      server.send(JSON.stringify({ type: "paused" }));
     }
 
     // 收到消息 -> 广播 + 保存
@@ -144,6 +160,13 @@ export class ChatRoom {
         const now = Date.now();
         if (now - lastMsgAt < 2000) { return; } // 限速：2 秒内只接受 1 条，防刷屏
         lastMsgAt = now;
+
+        // 暂停：聊天/弹幕/一起看在暂停时丢弃（主人断电）
+        const paused = await this.state.storage.get("paused");
+        if (paused && (data.type === "chat" || data.type === "danmu" || data.type === "watch")) {
+          server.send(JSON.stringify({ type: "paused" }));
+          return;
+        }
 
         // 一起看：换视频/网页 URL
         if (data.type === "watch") {

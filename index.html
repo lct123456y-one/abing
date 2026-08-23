@@ -334,7 +334,7 @@
   }
   let ws = null;
   let pollMode = false, lastMsgTime = 0, wsFail = 0;
-  function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }
+  function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }\n  var _paused = false;\n  function setPaused(p){ _paused = p; if(p){ try{ document.getElementById('wsTxt').textContent = '已暂停'; document.getElementById('wsDot').style.background = '#f59e0b'; }catch(e){} } }\n  function pausedBlock(){ if(_paused){ alert('管理员已暂停互动，请稍候~'); return true; } return false; }
   // HTTP 轮询降级（wss 连不上时用）
   function startPolling(){
     if (pollMode) return;
@@ -415,7 +415,7 @@
     box.scrollTop = box.scrollHeight;
     if (box.children.length > 100) box.removeChild(box.firstChild);
   }
-  function sendMsg(){
+  function sendMsg(){ if(pausedBlock()) return;
     const t = document.getElementById('chatText').value.trim();
     const n = document.getElementById('chatName').value.trim() || '匿名';
     if (!t) return;
@@ -438,7 +438,7 @@
     document.getElementById('chatText').value = '';
   }
   // 弹幕
-  function sendDanmu(){
+  function sendDanmu(){ if(pausedBlock()) return;
     const t = document.getElementById('danmuText').value.trim();
     const n = document.getElementById('chatName').value.trim() || '匿名';
     if (!t || !ws || ws.readyState !== 1) return;
@@ -507,7 +507,7 @@
     if (m) return 'https://player.bilibili.com/player.html?bvid=' + m[1] + '&autoplay=0';
     return u;
   }
-  function sendWatch(){
+  function sendWatch(){ if(pausedBlock()) return;
     const raw = document.getElementById('watchUrl').value.trim();
     if (!raw || !ws || ws.readyState !== 1) return;
     const url = biliToEmbed(raw);
@@ -568,7 +568,7 @@
     lkJoined = true;
     return true;
   }
-  async function startShare(){
+  async function startShare(){ if(pausedBlock()) return;
     try {
       // 设置密码（可选）：填了则设，没填则清空
       const pass = document.getElementById('livePass').value.trim();
