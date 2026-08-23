@@ -98,40 +98,43 @@
   }
   let ws = null;
   function toggleChat(){ document.getElementById('chatPanel').classList.toggle('show'); }
-  // ---- 拖动 ----
-  (function(){
+
+  // ---- 拖动（标题栏）----
+  function initDrag(){
     const panel = document.getElementById('chatPanel');
     const head = document.getElementById('chatHead');
     let dragging = false, offX = 0, offY = 0;
-    head.addEventListener('mousedown', e => {
+    head.addEventListener('mousedown', function(e){
       dragging = true; panel.classList.add('dragging');
       offX = e.clientX - panel.offsetLeft; offY = e.clientY - panel.offsetTop;
       e.preventDefault();
     });
-    document.addEventListener('mousemove', e => {
+    document.addEventListener('mousemove', function(e){
       if (!dragging) return;
-      panel.style.left = e.clientX - offX + 'px';
-      panel.style.top = e.clientY - offY + 'px';
+      panel.style.left = (e.clientX - offX) + 'px';
+      panel.style.top = (e.clientY - offY) + 'px';
       panel.style.right = 'auto'; panel.style.bottom = 'auto';
     });
-    document.addEventListener('mouseup', () => { dragging = false; panel.classList.remove('dragging'); });
-  })();
+    document.addEventListener('mouseup', function(){ dragging = false; panel.classList.remove('dragging'); });
+  }
   // ---- 缩放（右下角）----
-  (function(){
+  function initResize(){
     const panel = document.getElementById('chatPanel');
     const resize = document.getElementById('chatResize');
-    let resizing = false, startX = 0, startY = 0, startW = 0, startH = 0;
-    resize.addEventListener('mousedown', e => {
-      resizing = true; startX = e.clientX; startY = e.clientY;
-      startW = panel.offsetWidth; startH = panel.offsetHeight; e.preventDefault(); e.stopPropagation();
+    let resizing = false, sx = 0, sy = 0, sw = 0, sh = 0;
+    resize.addEventListener('mousedown', function(e){
+      resizing = true; sx = e.clientX; sy = e.clientY;
+      sw = panel.offsetWidth; sh = panel.offsetHeight; e.preventDefault(); e.stopPropagation();
     });
-    document.addEventListener('mousemove', e => {
+    document.addEventListener('mousemove', function(e){
       if (!resizing) return;
-      panel.style.width = Math.max(240, startW + (e.clientX - startX)) + 'px';
-      panel.style.height = Math.max(300, startH + (e.clientY - startY)) + 'px';
+      panel.style.width = Math.max(240, sw + (e.clientX - sx)) + 'px';
+      panel.style.height = Math.max(300, sh + (e.clientY - sy)) + 'px';
     });
-    document.addEventListener('mouseup', () => { resizing = false; });
-  })();
+    document.addEventListener('mouseup', function(){ resizing = false; });
+  }
+  initDrag(); initResize();
+
   function connect(){
     try { ws = new WebSocket('wss://abing-chat.lct123456y.workers.dev'); } catch(e){ return; }
     ws.onmessage = (ev) => {
