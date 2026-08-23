@@ -138,6 +138,22 @@
   .asoul-sleep-card { opacity:.8; }
   .asoul-sleep-card img { border-color:rgba(255,255,255,.15); filter:grayscale(.35); }
   .asoul-sleep-card .nm { color:#a896c9; }
+
+  /* 手机端适配 */
+  @media (max-width: 768px) {
+    body { padding: 10px; align-items: flex-start; }
+    .card { padding: 28px 20px; max-width: 100%; }
+    h1 { font-size: 32px; }
+    .qq { font-size: 28px; }
+    /* 右侧 A-SOUL 栏改为页面底部纵向 */
+    .asoul-side { position: static; width: 100%; height: auto; border-left: none; border-top: 1px solid rgba(255,255,255,.1); margin-top: 16px; }
+    .asoul-live-row { gap: 10px; }
+    /* 浮动按钮改成顶部一行小按钮 */
+    #chatFab, #watchFab, #liveFab { position: static; display: inline-block; padding: 8px 12px; font-size: 13px; margin: 0 4px 0 0; }
+    /* 面板手机端全屏 */
+    #chatPanel, #watchPanel, #livePanel { width: 100vw; height: 80vh; left: 0; right: 0; bottom: 0; border-radius: 0; }
+    #watchPanel { height: 70vh; }
+  }
 </style>
 </head>
 <body>
