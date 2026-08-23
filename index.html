@@ -287,12 +287,14 @@
     } catch(e) {}
   }
   // 本周安排（示例，主人每周更新）
-  const SCHED = [
-    { day: "周一", items: [{ m: "嘉然", t: "20:00" }, { m: "乃琳", t: "21:00" }] },
-    { day: "周三", items: [{ m: "贝拉", t: "19:30" }] },
-    { day: "周五", items: [{ m: "思诺", t: "20:30" }, { m: "心宜", t: "22:00" }] },
-    { day: "周六", items: [{ m: "嘉然", t: "19:00" }] }, { day: "周日", items: [] }
-  ];
+    let SCHED = [];
+  async function loadSched(){
+    try {
+      const r = await fetch('https://chat.abing.wtf/schedule');
+      const d = await r.json();
+      if (d.schedule && d.schedule.length) { SCHED = d.schedule; renderSched(); }
+    } catch(e){}
+  }
   function renderSched(){
     const box = document.getElementById('asoulSched');
     box.innerHTML = '';
@@ -308,7 +310,7 @@
       });
     });
   }
-  loadAsoul(); renderSched();
+  loadAsoul(); renderSched(); loadSched();
   // "睡着了"成员（向晚/珈乐）
   const SLEEP = [
     { name: "向晚", img: "./asoul-xiangwan.jpg", uid: "672346917" },

@@ -1,0 +1,21 @@
+name: A-SOUL Auto Schedule
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # 每30分钟
+  workflow_dispatch:
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 抓A-SOUL动态+读当前schedule，追加突击直播
+        run: |
+          echo "=== 抓A-SOUL官方动态内容 ==="
+          curl -s --max-time 20 -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" -H "Referer: https://space.bilibili.com/703007996/dynamic" "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=703007996&offset=0" > dyn.json
+          echo "动态长度: $(wc -c < dyn.json)"
+          # 提取动态文字（突击直播公告）
+          jq -r '.data.items[]? | .modules.module_dynamic.desc.text? // empty' dyn.json 2>/dev/null | grep -E "直播|突击|今晚|开播|[0-9]{1,2}:[0-9]{2}|[0-9]{1,2}月[0-9]{1,2}日" | head -20 > texts.txt || true
+          echo "=== 匹配到突击直播相关文字 ==="
+          cat texts.txt 2>/dev/null || echo "(无)"
+          echo "=== 当前 schedule ==="
+          curl -s --max-time 20 "https://chat.abing.wtf/schedule" > cur.json
+          jq '.schedule' cur.json 2>/dev/null || echo "(读取失败)"
