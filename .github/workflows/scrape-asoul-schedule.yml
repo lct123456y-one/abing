@@ -5,14 +5,18 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
-      - name: 抓 A-SOUL 官方动态（看直播安排格式）
+      - name: 抓 A-SOUL 官方动态（带 cookie，看直播安排格式）
+        env:
+          BILI_COOKIE: ${{ secrets.BILI_COOKIE }}
         run: |
-          echo "=== 抓动态 ==="
-          curl -s --max-time 20 -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" -H "Referer: https://space.bilibili.com/703007996/dynamic" "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=703007996&offset=0" > dyn.json
+          echo "=== 抓动态（带cookie） ==="
+          curl -s --max-time 20 -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" -H "Referer: https://space.bilibili.com/703007996/dynamic" -H "Cookie: $BILI_COOKIE" "https://api.bilibili.com/x/polymer/web-dynamic/v1/feed/space?host_mid=703007996&offset=0" > dyn.json
           echo "动态响应长度: $(wc -c < dyn.json)"
-          echo "=== 提取每条动态的文字 ==="
-          jq -r '.data.items[]? | .modules.module_dynamic.desc.text? // empty' dyn.json 2>/dev/null | head -60
-          echo "=== 提取动态图片标题(如有) ==="
-          jq -r '.data.items[]? | .modules.module_dynamic.major.rich_text.text? // .modules.module_dynamic.major.draw.text? // empty' dyn.json 2>/dev/null | head -30
           echo "=== code/msg ==="
           jq -r '.code, .message' dyn.json 2>/dev/null
+          echo "=== 最新 5 条动态文字 ==="
+          jq -r '.data.items[:5][]? | "[" + (.type|tostring) + "] " + ((.modules.module_dynamic.desc.text // "(无文字)") | gsub("\n";" "))' dyn.json 2>/dev/null
+          echo "=== 最新图片动态的图片 URL（前5张） ==="
+          jq -r '.data.items[]? | select(.modules.module_dynamic.major.draw != null) | .modules.module_dynamic.major.draw.items[0].src' dyn.json 2>/dev/null | head -5
+          echo "=== 最新纯文字动态全文 ==="
+          jq -r '.data.items[]? | select(.modules.module_dynamic.desc.text != null) | .modules.module_dynamic.desc.text' dyn.json 2>/dev/null | head -20
