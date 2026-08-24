@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/index.css">
+<script type="module">
+  // 加载 emoji 正则库（ESM），用于把 emoji 字符替换成图片显示
+  import emojiRegex from 'https://cdn.jsdelivr.net/npm/emoji-regex@10.4.0/index.js';
+  window.emojiRegex = emojiRegex;
+</script>
 <!-- v-pause-1 --><title>a冰4.0 · QQ群发布页</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -63,6 +68,7 @@
   #chatMsgs { flex:1; overflow-y:auto; padding:12px; background:#1a0f2e; }
   .msg { margin-bottom:8px; font-size:14px; color:#e6edf5; font-family:"PingFang SC","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
   .msg img { max-width:100%; max-height:200px; border-radius:8px; display:block; margin-top:4px; }
+  img.emoji { width:1.2em; height:1.2em; vertical-align:-0.2em; display:inline-block; border-radius:0; margin:0 1px; }
   .msg .who { font-weight:700; color:#c4b5fd; margin-right:6px; }
   .msg .when { color:#8b7aa8; font-size:11px; margin-left:6px; }
   #chatInput { display:flex; border-top:1px solid rgba(255,255,255,.1); padding:8px; background:#1e2a38; }
@@ -538,7 +544,7 @@
       content = '<img src="' + m.image + '" style="max-width:100%;max-height:200px;border-radius:8px;display:block;margin-top:4px;" onclick="window.open(this.src)">';
     }
     if (m.text) {
-      content = '<div>' + escapeHtml(m.text) + '</div>' + content;
+      content = '<div>' + emojiToHtml(m.text) + '</div>' + content;
     }
     div.innerHTML = '<span class="who"></span>' + content + '<span class="when">' + when + '</span>';
     div.querySelector('.who').textContent = m.name + ':';
@@ -581,7 +587,7 @@
     while (layer.children.length > 30) layer.removeChild(layer.firstChild); // 同屏最多 30 条，防刷屏卡顿
     const el = document.createElement('div');
     el.className = 'danmu-item';
-    el.textContent = m.name + ': ' + m.text;
+    el.innerHTML = emojiToHtml(m.name + ': ' + m.text);
     const top = 10 + Math.random() * 70;
     el.style.top = top + 'vh';
     const dur = 5 + Math.random() * 4;
@@ -625,6 +631,19 @@
     reader.readAsDataURL(file);
   }
   function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  // emoji 图片化：把 emoji 字符替换成 noto-emoji 的 SVG 图片（系统字体不支持的新 emoji 也能显示）
+  function emojiToHtml(text){
+    const safe = escapeHtml(String(text || ''));
+    if (!window.emojiRegex) return safe; // emoji-regex 还没加载好，先纯文本
+    try {
+      return safe.replace(window.emojiRegex(), (m) => {
+        let cps = [];
+        for (const ch of m) cps.push(ch.codePointAt(0).toString(16));
+        const code = cps.join('_');
+        return '<img class="emoji" draggable="false" alt="' + m + '" src="https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/svg/emoji_u' + code + '.svg">';
+      });
+    } catch(e) { return safe; }
+  }
   document.getElementById('chatText').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
   connect();
   // WS 保活：每 5 秒检查，未连接/卡连接中超过 8 秒就自动重连（不用发消息触发）
