@@ -109,6 +109,12 @@ export class ChatRoom {
       if (data.image && typeof data.image === "string" && data.image.indexOf("data:image") === 0 && data.image.length < 2000000) {
         msg.image = data.image;
       }
+      // 每 12 小时清空闲聊记录（懒清除，HTTP 也检查）
+      const lastClear = await this.state.storage.get("lastClearAt") || 0;
+      if (Date.now() - lastClear > 43200000) {
+        await this.state.storage.put("messages", []);
+        await this.state.storage.put("lastClearAt", Date.now());
+      }
       const history = await this.state.storage.get("messages") || [];
       history.push(msg);
       let trimmed = history.length > 100 ? history.slice(-100) : history;
@@ -233,6 +239,12 @@ export class ChatRoom {
           if (preview.indexOf("data:image") === 0 && data.image.length < 2000000) {
             msg.image = data.image;
           }
+        }
+        // 每 12 小时清空闲聊记录（懒清除）
+        const lastClear = await this.state.storage.get("lastClearAt") || 0;
+        if (Date.now() - lastClear > 43200000) {
+          await this.state.storage.put("messages", []);
+          await this.state.storage.put("lastClearAt", Date.now());
         }
         // 保存（最近 100 条）
         let history2 = await this.state.storage.get("messages") || [];
