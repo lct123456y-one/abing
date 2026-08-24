@@ -613,7 +613,7 @@
   // ---- LiveKit 屏幕共享 ----
   const lkRoom = new LivekitClient.Room();
   let lkJoined = false;
-  function toggleLive(){ if(maintainBlock("屏幕共享")) return; document.getElementById('livePanel').classList.toggle('show'); }
+  function toggleLive(){ if(maintainBlock("屏幕共享")) return; const p = document.getElementById('livePanel'); p.classList.toggle('show'); if (p.classList.contains('show')) { try { lkJoin(); } catch(e){} } }
   function toggleAsoul(){ document.querySelector('.asoul-side').classList.toggle('open'); }
   function fs(id){
     const el = document.getElementById(id);
@@ -681,12 +681,8 @@
       setLiveStatus('共享失败：' + e.message);
     }
   }
-  // 观众自动加入（进网站就 join，A 共享时自动看到；后进来的人也能接上）
-  setInterval(async () => {
-    if (!lkJoined) {
-      try { await lkJoin(); } catch(e){}
-    }
-  }, 5000);
+  // 观众不再自动 join（省 LiveKit 额度）——打开「屏幕共享」面板时才连接
+  // （在 toggleLive 里 lkJoin；这里不再全站自动 join 占 participant 分钟）
   // 心跳密码检测：只在打开「屏幕共享」面板时验证（不看不弹）
   window._authed = false; window._authedRev = 0;
   setInterval(async () => {
