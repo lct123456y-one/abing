@@ -94,6 +94,21 @@ export class ChatRoom {
       return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type,X-Admin-Key,X-Update-Secret", "Access-Control-Max-Age": "86400" } });
     }
 
+    // 路由：/heartbeat 记录 cron 心跳（内部，X-Internal-Key）
+    if (pathname === "/heartbeat") {
+      const key = this.env.ADMIN_KEY || "";
+      if (!key || request.headers.get("X-Internal-Key") !== key) {
+        return new Response(JSON.stringify({ ok: false }), { status: 403, headers: JSON_HEADERS });
+      }
+      await this.state.storage.put("lastCronAt", Date.now());
+      return new Response(JSON.stringify({ ok: true }), { headers: JSON_HEADERS });
+    }
+    // 路由：/cron-heartbeat 查 cron 心跳（公开，诊断用）
+    if (pathname === "/cron-heartbeat") {
+      const lastCronAt = await this.state.storage.get("lastCronAt") || 0;
+      return new Response(JSON.stringify({ lastCronAt, now: Date.now(), diffMin: Math.round((Date.now() - lastCronAt) / 60000) }), { headers: JSON_HEADERS });
+    }
+
     // 路由：/update-live 接收 GitHub Actions 推送的直播状态（POST，需 secret）
     if (pathname === "/update-live" && request.method === "POST") {
       const secret = this.env.UPDATE_SECRET || "";
@@ -459,24 +474,28 @@ export default {
     const room = env.CHAT_ROOM.get(id);
     return room.fetch(request);
   },
-  // 定时（每10分钟）：① 触发 GitHub Actions 查 A-SOUL 直播状态 ② 抓 asoulcalendar 更新本周安排
+  // 定时（每10分钟）：① 记心跳 ② 触发 GitHub Actions 查直播状态 ③ 抓 asoulcalendar 更新本周安排
   async scheduled(event, env, ctx) {
-    // ① 触发 GitHub 查直播状态（需要 GITHUB_TOKEN）
+    const key = env.ADMIN_KEY || "";
+    const id = env.CHAT_ROOM.idFromName("main-room");
+    const room = env.CHAT_ROOM.get(id);
+    // ① 记 cron 心跳（诊断用）
+    try {
+      await room.fetch(new Request("https://internal/heartbeat", { headers: { "X-Internal-Key": key } }));
+    } catch(e) {}
+    // ② 触发 GitHub 查直播状态（需要 GITHUB_TOKEN）
     const token = env.GITHUB_TOKEN || "";
     if (token) {
       try {
         await fetch("https://api.github.com/repos/lct123456y-one/abing/actions/workflows/push-asoul-live.yml/dispatches", {
           method: "POST",
-          headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+          headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "Content-Type": "application/json", "User-Agent": "abing-chat-cron" },
           body: JSON.stringify({ ref: "master" })
         });
       } catch(e) {}
     }
-    // ② 抓 asoulcalendar 更新本周直播安排（30 分钟节流，不依赖 GitHub token）
+    // ③ 抓 asoulcalendar 更新本周直播安排（24 小时节流，不依赖 GitHub token）
     try {
-      const id = env.CHAT_ROOM.idFromName("main-room");
-      const room = env.CHAT_ROOM.get(id);
-      const key = env.ADMIN_KEY || "";
       await room.fetch(new Request("https://internal/refresh-schedule", { headers: { "X-Internal-Key": key } }));
     } catch(e) {}
   },
