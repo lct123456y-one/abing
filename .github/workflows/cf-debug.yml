@@ -5,19 +5,27 @@ jobs:
   debug:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect Pages projects and domains
+      - name: Inspect zone settings and DNS
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
-          echo "=== Pages projects ==="
-          curl -s "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects" -H "Authorization: Bearer $CF_API_TOKEN" | jq -c '.result[] | {name, subdomain, created_on, source_type: .source.type}'
-          echo "=== project abing domains ==="
-          curl -s "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/abing" -H "Authorization: Bearer $CF_API_TOKEN" | jq -c '{success, name: .result.name, subdomain: .result.subdomain, domains: .result.domains, errors}'
-          echo "=== project abing-new domains ==="
-          curl -s "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/abing-new" -H "Authorization: Bearer $CF_API_TOKEN" | jq -c '{success, name: .result.name, subdomain: .result.subdomain, domains: .result.domains, errors}'
-          echo "=== zone abing.wtf dns records ==="
-          curl -s "https://api.cloudflare.com/client/v4/zones?name=abing.wtf" -H "Authorization: Bearer $CF_API_TOKEN" | jq -r '.result[0].id' > zone_id.txt
-          cat zone_id.txt
-          ZONE_ID=$(cat zone_id.txt)
-          curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" -H "Authorization: Bearer $CF_API_TOKEN" | jq -c '.result[] | {type, name, content, proxied}'
+          echo "=== zone query raw ==="
+          curl -s "https://api.cloudflare.com/client/v4/zones?name=abing.wtf" -H "Authorization: Bearer $CF_API_TOKEN" > zones.json
+          jq -c '{success, errors, count: (.result|length), first: (.result[0] | {id, name, status})}' zones.json
+          ZONE_ID=$(jq -r '.result[0].id // empty' zones.json)
+          echo "ZONE_ID=$ZONE_ID"
+          if [ -n "$ZONE_ID" ]; then
+            echo "=== dns records ==="
+            curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?per_page=100" -H "Authorization: Bearer $CF_API_TOKEN" > dns.json
+            jq -c '{success, errors, records: [.result[]? | {type, name, content, proxied}]}' dns.json
+            echo "=== zone settings (key ones) ==="
+            curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/settings" -H "Authorization: Bearer $CF_API_TOKEN" > settings.json
+            jq -c '{success, errors, items: [.result[]? | select(.id=="security_level" or .id=="bot_management" or .id=="http3" or .id=="ssl" or .id=="always_use_https" or .id=="challenge_ttl" or .id=="ipv6") | {id, value, editable}]}' settings.json
+            echo "=== firewall rules / user agents ==="
+            curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/firewall/rules?per_page=50" -H "Authorization: Bearer $CF_API_TOKEN" > fw.json
+            jq -c '{success, errors, rules: [.result[]? | {description, action: .action, filter: .filter.expression}]}' fw.json
+            echo "=== bot management config ==="
+            curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/bot_management" -H "Authorization: Bearer $CF_API_TOKEN" > bot.json
+            jq -c '{success, errors, result: {enabled: .result.enabled, fight_mode: .result.fight_mode, super_bot_fight_mode: .result.super_bot_fight_mode}}' bot.json
+          fi
