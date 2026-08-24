@@ -349,6 +349,7 @@
     });
   }
   renderSched(); loadSched();
+  setInterval(loadSched, 180000); // 每 3 分钟刷新本周安排（Worker 每 30 分钟自动抓 asoulcalendar）
   // A-SOUL 抽屉懒加载：第一次拉开才请求直播状态 + 渲染头像（省首屏流量）
   let asoulLoaded = false;
   // "睡着了"成员（向晚/珈乐）

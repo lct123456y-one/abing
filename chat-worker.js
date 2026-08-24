@@ -7,6 +7,40 @@ const JSON_HEADERS = { "Content-Type": "application/json", "Access-Control-Allow
 // 聊天图片只允许位图格式（拒绝 SVG 等可能带脚本/外链的格式）
 const IMAGE_RE = /^data:image\/(png|jpeg|jpg|gif|webp);/i;
 
+// ---- A-SOUL 直播日程源（asoulcalendar.com 公开 API，聚合官方+突击）----
+const ASOUL_CAL_URL = "https://asoulcalendar.com/api/lives";
+const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+
+// 把 asoulcalendar 的 lives 数组解析成本周 schedule（按北京时间 UTC+8）
+function buildSchedule(lives) {
+  const nowUTC = Date.now();
+  const bjNow = new Date(nowUTC + 8 * 3600 * 1000);
+  const bjDay = bjNow.getUTCDay(); // 0=周日
+  const mondayOffset = bjDay === 0 ? -6 : 1 - bjDay;
+  const mondayBJ = new Date(Date.UTC(bjNow.getUTCFullYear(), bjNow.getUTCMonth(), bjNow.getUTCDate() + mondayOffset, 0, 0, 0));
+  const weekStartUTC = mondayBJ.getTime() - 8 * 3600 * 1000;
+  const weekEndUTC = weekStartUTC + 7 * 24 * 3600 * 1000;
+
+  const byDay = [[], [], [], [], [], [], []];
+  for (const live of lives || []) {
+    if (live.kind !== "schedule" || live.hide || !live.start_time) continue;
+    const t = Date.parse(live.start_time + "+08:00");
+    if (isNaN(t) || t < weekStartUTC || t >= weekEndUTC) continue;
+    const bj = new Date(t + 8 * 3600 * 1000);
+    const idx = (bj.getUTCDay() + 6) % 7; // 周一=0
+    const hh = String(bj.getUTCHours()).padStart(2, "0");
+    const mm = String(bj.getUTCMinutes()).padStart(2, "0");
+    byDay[idx].push({
+      m: String(live.title || live.host || "直播").slice(0, 18),
+      t: hh + ":" + mm,
+    });
+  }
+  return DAY_NAMES.map((day, i) => {
+    const items = byDay[i].sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
+    return { day, items: items.length ? items : [{ m: "休息日", t: "" }] };
+  });
+}
+
 // ---- 管理密钥：只从 Worker secret 读（不再硬编码，防公开仓库泄漏）----
 function isAdmin(request, env) {
   const key = env.ADMIN_KEY || "";
@@ -193,6 +227,13 @@ export class ChatRoom {
       const sched = Array.isArray(data.schedule) ? data.schedule.slice(0, 20) : [];
       await this.state.storage.put("schedule", sched);
       return new Response(JSON.stringify({ ok: true, count: sched.length }), { headers: JSON_HEADERS });
+    }
+
+    // 路由：/refresh-schedule 手动抓取 asoulcalendar 更新本周安排（管理密钥）
+    if (pathname === "/refresh-schedule") {
+      if (!isAdmin(request, this.env)) { return new Response(JSON.stringify({ ok: false }), { status: 403, headers: JSON_HEADERS }); }
+      const r = await this.refreshSchedule();
+      return new Response(JSON.stringify(r), { headers: JSON_HEADERS });
     }
 
     // 路由：/hall-data 名人堂/冥人堂成员+票数
@@ -390,6 +431,26 @@ export class ChatRoom {
       try { s.send(JSON.stringify({ type: "watch", watch: watch })); } catch (e) {}
     }
   }
+
+  // 抓 asoulcalendar.com 更新本周直播安排（30 分钟节流，避免频繁打扰人家）
+  async refreshSchedule() {
+    try {
+      const lastFetch = await this.state.storage.get("lastScheduleFetch") || 0;
+      if (Date.now() - lastFetch < 30 * 60 * 1000) {
+        return { ok: true, skipped: true, msg: "30 分钟内已抓过" };
+      }
+      const res = await fetch(ASOUL_CAL_URL);
+      if (!res.ok) return { ok: false, status: res.status };
+      const lives = await res.json();
+      if (!Array.isArray(lives)) return { ok: false, msg: "数据格式不对" };
+      const sched = buildSchedule(lives);
+      await this.state.storage.put("schedule", sched);
+      await this.state.storage.put("lastScheduleFetch", Date.now());
+      return { ok: true, count: sched.length, days: sched };
+    } catch (e) {
+      return { ok: false, msg: String(e && e.message || e) };
+    }
+  }
 }
 
 export default {
@@ -398,16 +459,25 @@ export default {
     const room = env.CHAT_ROOM.get(id);
     return room.fetch(request);
   },
-  // 定时（每10分钟）：触发 GitHub Actions 查 A-SOUL 直播状态（GitHub 环境能过 B站风控）
+  // 定时（每10分钟）：① 触发 GitHub Actions 查 A-SOUL 直播状态 ② 抓 asoulcalendar 更新本周安排
   async scheduled(event, env, ctx) {
+    // ① 触发 GitHub 查直播状态（需要 GITHUB_TOKEN）
     const token = env.GITHUB_TOKEN || "";
-    if (!token) return;
+    if (token) {
+      try {
+        await fetch("https://api.github.com/repos/lct123456y-one/abing/actions/workflows/push-asoul-live.yml/dispatches", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+          body: JSON.stringify({ ref: "master" })
+        });
+      } catch(e) {}
+    }
+    // ② 抓 asoulcalendar 更新本周直播安排（30 分钟节流，不依赖 GitHub token）
     try {
-      await fetch("https://api.github.com/repos/lct123456y-one/abing/actions/workflows/push-asoul-live.yml/dispatches", {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
-        body: JSON.stringify({ ref: "master" })
-      });
+      const id = env.CHAT_ROOM.idFromName("main-room");
+      const room = env.CHAT_ROOM.get(id);
+      const key = env.ADMIN_KEY || "";
+      await room.fetch(new Request("https://internal/refresh-schedule", { headers: { "X-Internal-Key": key } }));
     } catch(e) {}
   },
 };
