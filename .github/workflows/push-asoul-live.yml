@@ -6,6 +6,9 @@ on:
 jobs:
   push:
     runs-on: ubuntu-latest
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
     steps:
       - name: 查B站直播状态并推送到网站
         run: |
