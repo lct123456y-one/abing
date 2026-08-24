@@ -1,0 +1,32 @@
+name: Deploy to Cloudflare Pages
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Deploy to abing-new (Direct Upload)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          npm install -g wrangler
+          mkdir -p deploy
+          cp index.html deploy/
+          cp livekit-client.umd.min.js deploy/ 2>/dev/null || true
+          cp asoul-*.jpg deploy/ 2>/dev/null || true
+          cp ranran-*.jpg deploy/ 2>/dev/null || true
+          cp abing-meme.jpg deploy/ 2>/dev/null || true
+          echo "=== deploy 文件 ==="
+          ls deploy
+          echo "=== 确认 index.html 有 hall-btn ==="
+          grep -c "hall-btn" deploy/index.html || echo "无 hall-btn!"
+          npx wrangler pages deploy deploy --project-name abing-new
