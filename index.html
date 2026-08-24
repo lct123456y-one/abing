@@ -222,7 +222,7 @@
     <div class="qq-label">QQ 群号</div>
     <a class="btn" href="https://qm.qq.com/q/NHqdexMLOo" target="_blank" rel="noopener">一键加群</a>
     <button class="btn copy" onclick="copyQQ()">复制群号</button>
-    <div class="tip">Abing</div>
+    <div class="tip">Abing · v20260824.3</div>
   </div>
 
   <button id="chatFab" onclick="toggleChat()">💬 闲聊</button>
@@ -471,6 +471,7 @@
   makeResizable(document.getElementById('hallPanel'), document.getElementById('hallResize'));
   makeResizable(document.getElementById('watchPanel'), document.getElementById('watchResize'));
 
+  let wsConnectTimer = null;
   function connect(){
     // 已连接不重复建连；正在连接且未超过 8 秒也不重复（防止堆积连接）
     if (ws && ws.readyState === 1) return;
@@ -478,7 +479,12 @@
     // 卡在 CONNECTING 超过 8 秒：强制关闭重连
     if (ws) { try { ws.close(); } catch(e){} ws = null; }
     wsConnectingSince = Date.now();
-    try { ws = new WebSocket('wss://chat.abing.wtf'); } catch(e){ ws = null; return; }
+    try { ws = new WebSocket('wss://chat.abing.wtf'); } catch(e){ ws = null; setTimeout(connect, 3000); return; }
+    // 8 秒还没连上就强制重建（双保险，不依赖外部保活定时器）
+    clearTimeout(wsConnectTimer);
+    wsConnectTimer = setTimeout(function(){
+      if (ws && ws.readyState === 0) { try { ws.close(); } catch(e){} ws = null; connect(); }
+    }, 8000);
     ws.onmessage = (ev) => {
       const d = JSON.parse(ev.data);
       if (d.type === 'history') { d.messages.forEach(addMsg); }
@@ -493,11 +499,12 @@
         }
       }
     };
-    ws.onopen = () => { wsFail = 0; wsConnectingSince = 0; pollMode = false; try { document.getElementById('wsDot').style.background = '#22c55e'; document.getElementById('wsTxt').textContent = '已连接'; } catch(e){} };
+    ws.onopen = () => { clearTimeout(wsConnectTimer); wsFail = 0; wsConnectingSince = 0; pollMode = false; try { document.getElementById('wsDot').style.background = '#22c55e'; document.getElementById('wsTxt').textContent = '已连接'; } catch(e){} };
     ws.onerror = () => { /* 交给 onclose 统一处理重连 */ };
     ws.onclose = () => {
+      clearTimeout(wsConnectTimer);
       if (ws) { ws = null; }
-      try { document.getElementById('wsDot').style.background = '#f87171'; document.getElementById('wsTxt').textContent = '未连接'; } catch(e){}
+      try { document.getElementById('wsDot').style.background = '#f87171'; document.getElementById('wsTxt').textContent = '未连接，自动重连中…'; } catch(e){}
       wsFail++;
       if (wsFail > 2) startPolling(); // 连续失败降级 HTTP 轮询，但 WS 仍会继续重试
       setTimeout(connect, 3000);
