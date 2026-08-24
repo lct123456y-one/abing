@@ -301,10 +301,10 @@
       const uEl = document.getElementById('asoulUpdated');
       if (uEl && data.updated) { const mins = Math.max(0, Math.round((Date.now() - data.updated) / 60000)); uEl.textContent = '更新于 ' + mins + ' 分钟前' + (mins > 10 ? '（数据可能延迟）' : ''); }
       // 3+2 分组：前3一排，后2一排（心宜陪思诺）
-      const mkRow = (arr) => {
+      const mkRow = (arr, offset) => {
         const row = document.createElement('div'); row.className = 'asoul-live-row';
         arr.forEach((m, idx) => {
-          const asoul = ASOUL[idx] || ASOUL.find(x => x.name === m.name) || { name: m.name, img: '' };
+          const asoul = ASOUL[offset + idx] || ASOUL.find(x => x.name === m.name) || { name: m.name, img: '' };
           const card = document.createElement('a');
           card.className = 'asoul-live-card' + (m.live ? ' online' : '');
           card.href = m.url; card.target = '_blank';
@@ -314,10 +314,10 @@
         return row;
       };
       if (data.members.length >= 5) {
-        wrap.appendChild(mkRow(data.members.slice(0, 3)));
-        wrap.appendChild(mkRow(data.members.slice(3)));
+        wrap.appendChild(mkRow(data.members.slice(0, 3), 0));
+        wrap.appendChild(mkRow(data.members.slice(3), 3));
       } else {
-        wrap.appendChild(mkRow(data.members));
+        wrap.appendChild(mkRow(data.members, 0));
       }
     } catch(e) {}
   }
