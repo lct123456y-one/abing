@@ -1,0 +1,23 @@
+name: CF Debug
+on:
+  workflow_dispatch:
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect Pages projects and domains
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          echo "=== Pages projects ==="
+          curl -s "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects" -H "Authorization: Bearer $CF_API_TOKEN" | jq -c '.result[] | {name, subdomain, created_on, source_type: .source.type}'
+          echo "=== project abing domains ==="
+          curl -s "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/abing" -H "Authorization: Bearer $CF_API_TOKEN" | jq -c '{success, name: .result.name, subdomain: .result.subdomain, domains: .result.domains, errors}'
+          echo "=== project abing-new domains ==="
+          curl -s "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/abing-new" -H "Authorization: Bearer $CF_API_TOKEN" | jq -c '{success, name: .result.name, subdomain: .result.subdomain, domains: .result.domains, errors}'
+          echo "=== zone abing.wtf dns records ==="
+          curl -s "https://api.cloudflare.com/client/v4/zones?name=abing.wtf" -H "Authorization: Bearer $CF_API_TOKEN" | jq -r '.result[0].id' > zone_id.txt
+          cat zone_id.txt
+          ZONE_ID=$(cat zone_id.txt)
+          curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" -H "Authorization: Bearer $CF_API_TOKEN" | jq -c '.result[] | {type, name, content, proxied}'
