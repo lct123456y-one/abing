@@ -387,9 +387,22 @@
     fetch('https://chat.abing.wtf/vote', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ uid:_hallUid, hall:h, name:name, dir:dir }) })
       .then(r=>r.json()).then(d => {
         if (!d.ok) { alert(d.msg || '投票失败'); return; }
+        // 反馈：按钮变"已投✓" + 禁用
+        const txt = btn.textContent;
+        const fb = txt.includes('🙏') ? '已上香 ✓' : txt.includes('🤮') ? '已吐痰 ✓' : txt.includes('👍') ? '已点赞 ✓' : '已点踩 ✓';
+        btn.textContent = fb; btn.disabled = true;
         document.getElementById('hallRemain').textContent = '您今天还有 ' + d.remainingUp + ' 票正向 / ' + d.remainingDown + ' 票负向';
+        // toast 反馈
+        showToast(fb + '（' + name + '）');
         openHall(h);
       });
+  }
+  // 简易 toast 反馈（底部浮出）
+  function showToast(msg){
+    let t = document.getElementById('hallToast');
+    if (!t) { t = document.createElement('div'); t.id = 'hallToast'; t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(20,12,40,.92);color:#f0abfc;padding:10px 20px;border-radius:24px;font-size:14px;z-index:1000;transition:opacity .3s;border:1px solid rgba(240,171,252,.3);'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._tm); t._tm = setTimeout(() => { t.style.opacity = '0'; }, 1800);
   }
   function copyQQ(){
     navigator.clipboard.writeText("1098549767").then(()=>{      const b = document.querySelector(".copy");
