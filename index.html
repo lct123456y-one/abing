@@ -235,6 +235,10 @@
     <div id="liveBtns">
       <button id="shareBtn" onclick="startShare()">🖥️ 我共享屏幕</button>
       <input id="livePass" placeholder="共享密码(可选)" maxlength="20" style="background:#16202d;color:#e6edf5;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px;font-size:13px;width:130px;">
+      <select id="liveQuality" title="共享画质" style="background:#16202d;color:#e6edf5;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px;font-size:13px;">
+        <option value="smooth" selected>流畅优先(720p/15帧)</option>
+        <option value="hd">清晰优先(1080p/25帧)</option>
+      </select>
       <span id="liveStatus">未连接</span>
     </div>
     <div id="liveVolWrap">🔊 音量 <input id="liveVol" type="range" min="0" max="1" step="0.05" value="0.1" oninput="setVol(this.value)"></div>
@@ -747,15 +751,27 @@
       if (tk.error) { setLiveStatus('无法获取共享权限（密码可能被他人设置）'); return; }
       await connectLive(tk.token, tk.url);
       const room = await getLkRoom();
-      const screen = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 25, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: true });
-      await room.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: 'screen_share', name: 'screen', codec: 'vp9' });
-      // 发布音频（屏幕共享的声音/系统声/麦克风）
+      // 画质策略：默认流畅优先（720p/15帧/VP8/1.2Mbps），可选清晰（1080p/25帧/VP8/3.5Mbps）
+      // 免费版 LiveKit 对 VP8 支持最好，高帧率+高码率容易被限速导致卡顿
+      const quality = document.getElementById('liveQuality')?.value || 'smooth';
+      const isHD = quality === 'hd';
+      const q = isHD
+        ? { video: { frameRate: { ideal: 25, max: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, maxBitrate: 3500000, maxFramerate: 25, videoCodec: 'vp8', label: '1080p/25fps' }
+        : { video: { frameRate: { ideal: 15, max: 15 }, width: { ideal: 1280 }, height: { ideal: 720 } }, maxBitrate: 1200000, maxFramerate: 15, videoCodec: 'vp8', label: '720p/15fps' };
+      const screen = await navigator.mediaDevices.getDisplayMedia({ video: q.video, audio: true });
+      await room.localParticipant.publishTrack(screen.getVideoTracks()[0], {
+        source: 'screen_share',
+        name: 'screen',
+        videoCodec: q.videoCodec,
+        videoEncoding: { maxBitrate: q.maxBitrate, maxFramerate: q.maxFramerate },
+      });
+      // 发布音频（屏幕共享的声音/系统声/麦克风），限制 64kbps 防抢带宽
       if (screen.getAudioTracks().length > 0) {
-        await room.localParticipant.publishTrack(screen.getAudioTracks()[0], { source: 'microphone', name: 'screen-audio' });
+        await room.localParticipant.publishTrack(screen.getAudioTracks()[0], { source: 'microphone', name: 'screen-audio', audioBitrate: 64000 });
       }
       document.getElementById('liveLocal').srcObject = screen;
       document.getElementById('livePreview').style.display = 'block';
-      setLiveStatus(pass ? ('共享中 ✓ 已设密码：' + pass) : '共享中 ✓（无密码，谁都能看）');
+      setLiveStatus((pass ? ('共享中 ✓ 已设密码：' + pass) : '共享中 ✓（无密码，谁都能看）') + ' · ' + q.label);
     } catch(e){
       setLiveStatus('共享失败：' + e.message);
     }
