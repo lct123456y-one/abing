@@ -42,6 +42,11 @@ export class ChatRoom {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
+    // CORS 预检处理（OPTIONS）——所有跨域 fetch POST 先发 preflight，必须回应
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" } });
+    }
+
     // 路由：/update-live 接收本地脚本推送的直播状态（POST）
     if (pathname === "/update-live" && request.method === "POST") {
       try {
