@@ -284,7 +284,7 @@ export class ChatRoom {
       const name = String(data.name || "").slice(0,30);
       const dir = data.dir === "up" ? "up" : "down";
       if (!uid || !name) { return new Response(JSON.stringify({ ok:false, msg:"参数错" }), { headers: JSON_HEADERS }); }
-      const today = new Date().toISOString().slice(0,10);
+      const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0,10); // 按北京时间算"今天"（UTC+8）
       const uidVotes = await this.state.storage.get("uidVotes") || {};
       const my = uidVotes[uid] || {};
       if (my.date !== today) { my.date = today; my.up = 0; my.down = 0; }
