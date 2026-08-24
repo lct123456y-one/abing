@@ -24,7 +24,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
           UPDATE_SECRET: ${{ secrets.UPDATE_SECRET }}
+          GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
         run: |
           echo "$ADMIN_KEY" | wrangler secret put ADMIN_KEY
           echo "$UPDATE_SECRET" | wrangler secret put UPDATE_SECRET
+          echo "$GH_DISPATCH_TOKEN" | wrangler secret put GITHUB_TOKEN
           wrangler deploy
