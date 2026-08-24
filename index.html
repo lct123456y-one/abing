@@ -398,6 +398,7 @@
       if (d.type === 'history') { d.messages.forEach(addMsg); }
       else if (d.type === 'chat') { addMsg(d.message); }
       else if (d.type === 'danmu' && d.message && d.message.text) { showDanmu(d.message); }
+      else if (d.type === 'blocked') { alert('你TM别给我乱讲话！'); }
       else if (d.type === 'watch' && d.watch && d.watch.url) {
         document.getElementById('watchFrame').src = d.watch.url;
         document.getElementById('watchUrl').value = d.watch.url;

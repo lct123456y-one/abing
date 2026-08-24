@@ -1,3 +1,7 @@
+// 违禁词表（政治敏感/领导人名讳/键政攻击，骂人不管——自由搏击）
+const BAD_WORDS = ['习近平','李强','胡锦涛','温家宝','江泽民','李克强','坦克人','六四','独裁','暴政','太子党','天安门事件','某地事件'];
+function hasBadWord(t){ return BAD_WORDS.some(w => (t||'').includes(w)); }
+
 // 极简实时聊天室（Cloudflare Workers + Durable Objects）
 // 一个房间，WebSocket 广播，消息持久化 + 一起看（iframe URL 同步）+ LiveKit token
 
@@ -207,11 +211,15 @@ export class ChatRoom {
         if (data.type !== "chat") {
           // 弹幕：广播（不存档）
           if (data.type === "danmu") {
+            // 违禁词检查（弹幕也拦）
+            if (hasBadWord(data.text)) { server.send(JSON.stringify({ type: "blocked" })); return; }
             const msg = { name: (data.name || "匿名").slice(0, 20), text: (data.text || "").slice(0, 60), time: Date.now() };
             for (const s of this.sessions) { try { s.send(JSON.stringify({ type: "danmu", message: msg })); } catch (e) {} }
           }
           return;
         }
+        // 违禁词检查：含违禁词 → 拦截 + 提示（不广播）
+        if (hasBadWord(data.text)) { server.send(JSON.stringify({ type: "blocked" })); return; }
         const msg = {
           name: (data.name || "匿名").slice(0, 20),
           text: (data.text || "").slice(0, 500),
