@@ -668,8 +668,8 @@
       const pass = document.getElementById('livePass').value.trim();
       await fetch('https://chat.abing.wtf/set-live-pass?pass=' + encodeURIComponent(pass) + '&uid=' + _hallUid);
       await lkJoin();
-      const screen = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      await lkRoom.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: 'screen_share', name: 'screen' });
+      const screen = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 25, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: true });
+      await lkRoom.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: 'screen_share', name: 'screen', codec: 'vp9' });
       // 发布音频（屏幕共享的声音/系统声/麦克风）
       if (screen.getAudioTracks().length > 0) {
         await lkRoom.localParticipant.publishTrack(screen.getAudioTracks()[0], { source: 'microphone', name: 'screen-audio' });
