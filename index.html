@@ -181,9 +181,9 @@
   }
 
   /* a冰人不吃这一套 · 右上角纯背景装饰 */
-  #memeBg { position: fixed; top: 10px; right: 10px; width: 130px; opacity: 0.35; pointer-events: none; z-index: 5; border-radius: 12px; animation: memeMove 7s linear infinite; }
-  @keyframes memeMove { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(55px); } }
-  @media (max-width: 768px) { #memeBg { width: 80px; opacity: 0.25; animation-duration: 6s; } @keyframes memeMove { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(35px); } } }`n</style>
+  #memeBg { position: fixed; top: 10px; left: 10px; width: 130px; opacity: 0.35; pointer-events: none; z-index: 5; border-radius: 12px; animation: memeMove 12s linear infinite; }
+  @keyframes memeMove { 0% { transform: translateX(0); } 50% { transform: translateX(calc(100vw - 150px)); } 100% { transform: translateX(0); } }
+  @media (max-width: 768px) { #memeBg { width: 80px; opacity: 0.25; animation-duration: 10s; } @keyframes memeMove { 0% { transform: translateX(0); } 50% { transform: translateX(calc(100vw - 100px)); } 100% { transform: translateX(0); } } }`n</style>
 </head>
 <body>
   <div class="card">
