@@ -436,8 +436,8 @@ export class ChatRoom {
   async refreshSchedule() {
     try {
       const lastFetch = await this.state.storage.get("lastScheduleFetch") || 0;
-      if (Date.now() - lastFetch < 30 * 60 * 1000) {
-        return { ok: true, skipped: true, msg: "30 分钟内已抓过" };
+      if (Date.now() - lastFetch < 24 * 60 * 60 * 1000) {
+        return { ok: true, skipped: true, msg: "24 小时内已抓过" };
       }
       const res = await fetch(ASOUL_CAL_URL);
       if (!res.ok) return { ok: false, status: res.status };
