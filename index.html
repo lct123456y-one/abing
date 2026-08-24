@@ -331,6 +331,8 @@
   })();
   setInterval(loadAsoul, 180000);
 
+  // 昵称记忆（localStorage，刷新/重进保持，可主动改）
+  (function(){ try { const n = document.getElementById('chatName'); if (n) { n.value = localStorage.getItem('asoul_name') || '群友'; n.addEventListener('input', function(){ localStorage.setItem('asoul_name', n.value.trim()); }); } } catch(e){} })();
   function copyQQ(){
     navigator.clipboard.writeText("1098549767").then(()=>{      const b = document.querySelector(".copy");
       b.textContent = "已复制 ✓";
