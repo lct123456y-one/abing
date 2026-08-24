@@ -179,7 +179,10 @@
     #chatPanel, #watchPanel, #livePanel { width: 92vw; height: 55vh; left: 4vw; right: auto; bottom: auto; top: 20vh; border-radius: 14px; }
     #watchPanel { height: 48vh; }
   }
-</style>
+
+  /* a冰人不吃这一套 · 右上角纯背景装饰 */
+  #memeBg { position: fixed; top: 10px; right: 10px; width: 130px; opacity: 0.35; pointer-events: none; z-index: 5; border-radius: 12px; }
+  @media (max-width: 768px) { #memeBg { width: 80px; opacity: 0.25; } }`n</style>
 </head>
 <body>
   <div class="card">
@@ -629,5 +632,6 @@
     }
   });
 </script>
+  <img id="memeBg" src="./abing-meme.jpg" alt="">
 </body>
 </html>
