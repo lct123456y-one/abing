@@ -71,15 +71,27 @@ export class ChatRoom {
       return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 
-    // 路由：/set-live-pass 设置屏幕共享密码（共享者用）——每次设置刷新版本号
+    // 路由：/set-live-pass 设置屏幕共享密码——只有"正在共享的人（密码主人）"能设/改
     if (pathname === "/set-live-pass") {
       const pass = (url.searchParams.get("pass") || "").slice(0, 20);
+      const uid = (url.searchParams.get("uid") || "").slice(0, 40);
+      const setter = await this.state.storage.get("livePassSetter");
       if (pass) {
+        // 已有密码且不是密码主人 → 拒绝（只有当前共享者能改）
+        if (setter && setter !== uid) {
+          return new Response(JSON.stringify({ ok: false, msg: "只有当前共享者能设置密码" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+        }
         await this.state.storage.put("livePass", pass);
         await this.state.storage.put("livePassRev", Date.now()); // 版本号 = 设置时间
+        await this.state.storage.put("livePassSetter", uid); // 记录密码主人
       } else {
+        // 清密码：也只有密码主人能清
+        if (setter && setter !== uid) {
+          return new Response(JSON.stringify({ ok: false, msg: "只有当前共享者能清除密码" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+        }
         await this.state.storage.delete("livePass");
         await this.state.storage.delete("livePassRev");
+        await this.state.storage.delete("livePassSetter");
       }
       return new Response(JSON.stringify({ ok: true, hasPass: !!pass }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
