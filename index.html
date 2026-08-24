@@ -414,7 +414,7 @@
     });
   }
   let ws = null;
-  let pollMode = false, lastMsgTime = 0, wsFail = 0;
+  let pollMode = false, lastMsgTime = 0, wsFail = 0, wsConnectingSince = 0;
   var _maintain = false;
   function maintainBlock(nm){ if(_maintain){ alert(nm + " 功能维护中，请稍候~"); return true; } return false; }
   function toggleChat(){ if(maintainBlock("闲聊")) return; document.getElementById('chatPanel').classList.toggle('show'); }
@@ -469,7 +469,13 @@
   makeResizable(document.getElementById('watchPanel'), document.getElementById('watchResize'));
 
   function connect(){
-    try { ws = new WebSocket('wss://chat.abing.wtf'); } catch(e){ setTimeout(connect, 3000); return; }
+    // 已连接不重复建连；正在连接且未超过 8 秒也不重复（防止堆积连接）
+    if (ws && ws.readyState === 1) return;
+    if (ws && ws.readyState === 0 && Date.now() - wsConnectingSince < 8000) return;
+    // 卡在 CONNECTING 超过 8 秒：强制关闭重连
+    if (ws) { try { ws.close(); } catch(e){} ws = null; }
+    wsConnectingSince = Date.now();
+    try { ws = new WebSocket('wss://chat.abing.wtf'); } catch(e){ ws = null; return; }
     ws.onmessage = (ev) => {
       const d = JSON.parse(ev.data);
       if (d.type === 'history') { d.messages.forEach(addMsg); }
@@ -484,9 +490,15 @@
         }
       }
     };
-    ws.onopen = () => { wsFail = 0; try { document.getElementById('wsDot').style.background = '#22c55e'; document.getElementById('wsTxt').textContent = '已连接'; } catch(e){} };
-    ws.onerror = () => { wsFail++; if (wsFail > 2) { startPolling(); } else { setTimeout(connect, 3000); } };
-    ws.onclose = () => { try { document.getElementById('wsDot').style.background = '#f87171'; document.getElementById('wsTxt').textContent = '未连接'; } catch(e){} wsFail++; if (wsFail > 2) { startPolling(); } else { setTimeout(connect, 3000); } };
+    ws.onopen = () => { wsFail = 0; wsConnectingSince = 0; pollMode = false; try { document.getElementById('wsDot').style.background = '#22c55e'; document.getElementById('wsTxt').textContent = '已连接'; } catch(e){} };
+    ws.onerror = () => { /* 交给 onclose 统一处理重连 */ };
+    ws.onclose = () => {
+      if (ws) { ws = null; }
+      try { document.getElementById('wsDot').style.background = '#f87171'; document.getElementById('wsTxt').textContent = '未连接'; } catch(e){}
+      wsFail++;
+      if (wsFail > 2) startPolling(); // 连续失败降级 HTTP 轮询，但 WS 仍会继续重试
+      setTimeout(connect, 3000);
+    };
   }
   function addMsg(m){
     if (!m || (!m.text && !m.image)) return;
@@ -522,10 +534,8 @@
     }
     if (!ws || ws.readyState !== 1) {
       document.getElementById('chatText').value = t;
-      document.getElementById('chatText').placeholder = '连接中/失败，点一下重试…';
-      connect();
-  // ws 保活：未连接就自动重连（不用等说话）
-  setInterval(function(){ if (ws && ws.readyState !== 1 && !pollMode) { connect(); } }, 5000);
+      document.getElementById('chatText').placeholder = '连接中，稍等或直接发送~';
+      connect(); // 全局保活会持续重连，不用手动发消息触发
       return;
     }
     ws.send(JSON.stringify({ type:'chat', name:n, text:t }));
@@ -589,6 +599,8 @@
   function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   document.getElementById('chatText').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
   connect();
+  // WS 保活：每 5 秒检查，未连接/卡连接中超过 8 秒就自动重连（不用发消息触发）
+  setInterval(connect, 5000);
 
   // ---- 一起看 ----
   function toggleWatch(){ if(maintainBlock("一起看")) return; const p = document.getElementById('watchPanel'); p.classList.toggle('show'); if (p.classList.contains('show')) { const u = document.getElementById('watchUrl').value; if (u) document.getElementById('watchFrame').src = u; } }
