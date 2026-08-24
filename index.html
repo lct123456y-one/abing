@@ -189,11 +189,15 @@
   .hall-btn { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 96; }
   .hall-btn button { background: linear-gradient(90deg,#a855f7,#ec4899); color:#fff; border:none; border-radius: 20px; padding: 8px 18px; font-size: 14px; font-weight: 700; cursor: pointer; }
   .hall-btn button.ming { background: linear-gradient(90deg,#64748b,#475569); }
-  #hallPanel { display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 340px; max-height: 75vh; overflow-y:auto; background:#231437; border:1px solid rgba(255,255,255,.15); border-radius: 16px; z-index: 999; padding: 16px; box-shadow:0 12px 40px rgba(0,0,0,.5); }
+  #hallPanel { display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 460px; max-height: 82vh; overflow-y:auto; background:#231437; border:1px solid rgba(255,255,255,.15); border-radius: 16px; z-index: 999; padding: 16px; box-shadow:0 12px 40px rgba(0,0,0,.5); }
   #hallPanel.show { display:block; }
   #hallPanel h3 { color:#e9d5ff; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; }
   #hallPanel .hclose { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; }
-  .hall-item { display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom:1px solid rgba(255,255,255,.08); }
+  .hall-item { display:flex; gap:10px; align-items:flex-start; padding: 10px; border-radius: 10px; background: rgba(255,255,255,.05); margin-bottom: 8px; }
+  .hall-avatar { width: 44px; height: 44px; border-radius: 10px; background: #111; flex-shrink: 0; }
+  .hall-body { flex:1; min-width: 0; }
+  .hall-nm { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .hall-desc { color:#a896c9; font-size:11px; margin-top:3px; line-height:1.4; }
   .hall-item .nm { color:#e6edf5; font-size:14px; }
   .hall-item .ct { color:#8b7aa8; font-size:11px; margin-left:6px; }
   .hall-item .vt { display:flex; gap:6px; align-items:center; }
@@ -373,7 +377,7 @@
         const up = h === 'ming' ? '🙏' : '👍';
         const down = h === 'ming' ? '🤮' : '👎';
         const safe = it.name.replace(/'/g, '');
-        div.innerHTML = '<div class="hall-nm"><span class="nm">' + it.name + '<span class="ct">赞' + it.up + ' / 负' + it.down + '</span></span><span class="vt"><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'up\')">' + up + '</button><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'down\')">' + down + '</button></span></div><div class="hall-desc">' + (it.desc || '') + '</div>';
+        div.innerHTML = '<div class="hall-avatar"></div><div class="hall-body"><div class="hall-nm"><span class="nm">' + it.name + '<span class="ct">赞' + it.up + ' / 负' + it.down + '</span></span><span class="vt"><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'up\')">' + up + '</button><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'down\')">' + down + '</button></span></div><div class="hall-desc">' + (it.desc || '') + '</div></div>';
         box.appendChild(div);
       });
     });
