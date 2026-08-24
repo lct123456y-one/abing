@@ -22,4 +22,4 @@ jobs:
           done
           echo "MEMBERS: $MEMBERS"
           echo "=== 推送 worker ==="
-          curl -s --max-time 15 -X POST -H "Content-Type: application/json" -d "{\"members\":$MEMBERS}" "https://abing-chat.lct123456y.workers.dev/update-live"
+          curl -s --max-time 15 -X POST -H "Content-Type: application/json" -H "X-Update-Secret: ${{ secrets.UPDATE_SECRET }}" -d "{\"members\":$MEMBERS}" "https://abing-chat.lct123456y.workers.dev/update-live"

@@ -2,6 +2,17 @@
 const BAD_WORDS = ['习近平','李强','胡锦涛','温家宝','江泽民','李克强','坦克人','六四','独裁','暴政','太子党','天安门事件','某地事件'];
 function hasBadWord(t){ return BAD_WORDS.some(w => (t||'').includes(w)); }
 
+// ---- CORS ----
+const JSON_HEADERS = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" };
+
+// ---- 管理密钥：只从 Worker secret 读（不再硬编码，防公开仓库泄漏）----
+function isAdmin(request, env) {
+  const key = env.ADMIN_KEY || "";
+  if (!key) return false;
+  const u = new URL(request.url);
+  return u.searchParams.get("k") === key || request.headers.get("X-Admin-Key") === key;
+}
+
 // 极简实时聊天室（Cloudflare Workers + Durable Objects）
 // 一个房间，WebSocket 广播，消息持久化 + 一起看（iframe URL 同步）+ LiveKit token
 
@@ -19,14 +30,14 @@ async function signJWT(claim, secret) {
   const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   return data + "." + sigB64;
 }
-async function makeLiveKitToken(identity, room, env) {
+async function makeLiveKitToken(identity, room, env, canPublish) {
   const now = Math.floor(Date.now() / 1000);
   const claim = {
     iss: env.LIVEKIT_API_KEY,
     sub: identity,
     nbf: now - 10,
     exp: now + 3600, // 1 小时有效
-    video: { room: room, roomJoin: true, canPublish: true, canSubscribe: true }
+    video: { room: room, roomJoin: true, canPublish: !!canPublish, canSubscribe: true }
   };
   return await signJWT(claim, env.LIVEKIT_API_SECRET);
 }
@@ -44,19 +55,24 @@ export class ChatRoom {
 
     // CORS 预检处理（OPTIONS）——所有跨域 fetch POST 先发 preflight，必须回应
     if (request.method === "OPTIONS") {
-      return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" } });
+      return new Response(null, { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS", "Access-Control-Allow-Headers": "Content-Type,X-Admin-Key,X-Update-Secret", "Access-Control-Max-Age": "86400" } });
     }
 
-    // 路由：/update-live 接收本地脚本推送的直播状态（POST）
+    // 路由：/update-live 接收 GitHub Actions 推送的直播状态（POST，需 secret）
     if (pathname === "/update-live" && request.method === "POST") {
+      const secret = this.env.UPDATE_SECRET || "";
+      const provided = request.headers.get("X-Update-Secret") || "";
+      if (!secret || provided !== secret) {
+        return new Response(JSON.stringify({ ok: false, msg: "unauthorized" }), { status: 403, headers: JSON_HEADERS });
+      }
       try {
         const data = await request.json();
         const members = (data.members || []).map(m => ({ name: String(m.name).slice(0,20), room: Number(m.room)||0, live: !!m.live, title: String(m.title||"").slice(0,60), url: String(m.url||"") }));
         await this.state.storage.put("asoulLive", members);
         await this.state.storage.put("liveUpdated", Date.now());
-        return new Response(JSON.stringify({ ok: true, count: members.length }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+        return new Response(JSON.stringify({ ok: true, count: members.length }), { headers: JSON_HEADERS });
       } catch (e) {
-        return new Response(JSON.stringify({ ok: false }), { status: 400 });
+        return new Response(JSON.stringify({ ok: false }), { status: 400, headers: JSON_HEADERS });
       }
     }
 
@@ -73,18 +89,32 @@ export class ChatRoom {
       // 无 liveUpdated 时不返回 updated（避免"0分钟前"误导）
       const body = { members };
       if (updated) body.updated = updated;
-      return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify(body), { headers: JSON_HEADERS });
     }
 
     // 路由：/set-live-pass 设置屏幕共享密码——只有"正在共享的人（密码主人）"能设/改
+    // 支持管理密钥 force=1 强制清密码/改密码（救抢注场景）
     if (pathname === "/set-live-pass") {
       const pass = (url.searchParams.get("pass") || "").slice(0, 20);
       const uid = (url.searchParams.get("uid") || "").slice(0, 40);
       const setter = await this.state.storage.get("livePassSetter");
+      // 管理密钥强制改/清密码（force=1）
+      if (url.searchParams.get("force") === "1" && isAdmin(request, this.env)) {
+        if (pass) {
+          await this.state.storage.put("livePass", pass);
+          await this.state.storage.put("livePassRev", Date.now());
+          await this.state.storage.put("livePassSetter", uid || "admin");
+        } else {
+          await this.state.storage.delete("livePass");
+          await this.state.storage.delete("livePassRev");
+          await this.state.storage.delete("livePassSetter");
+        }
+        return new Response(JSON.stringify({ ok: true, hasPass: !!pass, force: true }), { headers: JSON_HEADERS });
+      }
       if (pass) {
         // 已有密码且不是密码主人 → 拒绝（只有当前共享者能改）
         if (setter && setter !== uid) {
-          return new Response(JSON.stringify({ ok: false, msg: "只有当前共享者能设置密码" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+          return new Response(JSON.stringify({ ok: false, msg: "只有当前共享者能设置密码" }), { headers: JSON_HEADERS });
         }
         await this.state.storage.put("livePass", pass);
         await this.state.storage.put("livePassRev", Date.now()); // 版本号 = 设置时间
@@ -92,37 +122,36 @@ export class ChatRoom {
       } else {
         // 清密码：也只有密码主人能清
         if (setter && setter !== uid) {
-          return new Response(JSON.stringify({ ok: false, msg: "只有当前共享者能清除密码" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+          return new Response(JSON.stringify({ ok: false, msg: "只有当前共享者能清除密码" }), { headers: JSON_HEADERS });
         }
         await this.state.storage.delete("livePass");
         await this.state.storage.delete("livePassRev");
         await this.state.storage.delete("livePassSetter");
       }
-      return new Response(JSON.stringify({ ok: true, hasPass: !!pass }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ ok: true, hasPass: !!pass }), { headers: JSON_HEADERS });
     }
-    // 路由：/get-live-pass 查当前密码+版本号（观众用）
+
+    // 路由：/get-live-pass 查是否有密码+版本号（观众用）——不返回明文，明文比对在 /token 端点做
     if (pathname === "/get-live-pass") {
       const pass = await this.state.storage.get("livePass") || "";
       const rev = await this.state.storage.get("livePassRev") || 0;
-      return new Response(JSON.stringify({ pass, rev }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ hasPass: !!pass, rev: rev }), { headers: JSON_HEADERS });
     }
 
     // 路由：/chat-his 拉取最近消息（HTTP 轮询，wss 连不上的降级）
     if (pathname === "/chat-his") {
       const history = await this.state.storage.get("messages") || [];
-      return new Response(JSON.stringify({ messages: history }), {
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-      });
+      return new Response(JSON.stringify({ messages: history }), { headers: JSON_HEADERS });
     }
     // 路由：/chat-send 发送消息（HTTP 轮询模式）
     if (pathname === "/chat-send" && request.method === "POST") {
       const paused = await this.state.storage.get("paused");
-      if (paused) { return new Response(JSON.stringify({ ok: false, paused: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }); }
+      if (paused) { return new Response(JSON.stringify({ ok: false, paused: true }), { headers: JSON_HEADERS }); }
       let data = {};
       try { data = await request.json(); } catch(e) {}
       const msg = { name: (data.name || "匿名").slice(0, 20), text: (data.text || "").slice(0, 500), time: Date.now() };
       // 违禁词检查（HTTP 发送也拦）
-      if (hasBadWord(msg.text)) { return new Response(JSON.stringify({ ok: false, blocked: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }); }
+      if (hasBadWord(msg.text)) { return new Response(JSON.stringify({ ok: false, blocked: true }), { headers: JSON_HEADERS }); }
       if (data.image && typeof data.image === "string" && data.image.indexOf("data:image") === 0 && data.image.length < 2000000) {
         msg.image = data.image;
       }
@@ -137,28 +166,28 @@ export class ChatRoom {
       let trimmed = history.length > 100 ? history.slice(-100) : history;
       await this.state.storage.put("messages", trimmed);
       for (const s of this.sessions) { try { s.send(JSON.stringify({ type: "chat", message: msg })); } catch (e) {} }
-      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ ok: true }), { headers: JSON_HEADERS });
     }
 
-    // 路由：/clear-messages 清空聊天记录（主人控制，带密钥）
+    // 路由：/clear-messages 清空聊天记录（主人控制，管理密钥）
     if (pathname === "/clear-messages") {
-      if (url.searchParams.get("k") !== "abing-pause-key-2026") { return new Response(JSON.stringify({ ok: false }), { status: 403 }); }
+      if (!isAdmin(request, this.env)) { return new Response(JSON.stringify({ ok: false }), { status: 403, headers: JSON_HEADERS }); }
       await this.state.storage.put("messages", []);
-      return new Response(JSON.stringify({ ok: true, cleared: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ ok: true, cleared: true }), { headers: JSON_HEADERS });
     }
 
     // 路由：/schedule 读本周直播安排（每周更新）
     if (pathname === "/schedule") {
       const sched = await this.state.storage.get("schedule") || [];
-      return new Response(JSON.stringify({ schedule: sched }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ schedule: sched }), { headers: JSON_HEADERS });
     }
-    // 路由：/set-schedule 更新本周安排（主人/鱼，带密钥）
+    // 路由：/set-schedule 更新本周安排（主人/鱼，管理密钥）
     if (pathname === "/set-schedule" && request.method === "POST") {
-      if (url.searchParams.get("k") !== "abing-pause-key-2026") { return new Response(JSON.stringify({ ok: false }), { status: 403 }); }
+      if (!isAdmin(request, this.env)) { return new Response(JSON.stringify({ ok: false }), { status: 403, headers: JSON_HEADERS }); }
       let data = {}; try { data = await request.json(); } catch(e){}
       const sched = Array.isArray(data.schedule) ? data.schedule.slice(0, 20) : [];
       await this.state.storage.put("schedule", sched);
-      return new Response(JSON.stringify({ ok: true, count: sched.length }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ ok: true, count: sched.length }), { headers: JSON_HEADERS });
     }
 
     // 路由：/hall-data 名人堂/冥人堂成员+票数
@@ -184,7 +213,7 @@ export class ChatRoom {
         { name:"B猫", desc:"a冰 创始人，乌托邦计划发起者，愿梦中巴别塔长存" }
       ];
       const mk = (list, h) => list.map(m => { const v = (votes[h]||{})[m.name] || {up:0,down:0}; return { name:m.name, desc:m.desc, up:v.up, down:v.down }; });
-      return new Response(JSON.stringify({ ming: mk(MING,"ming"), mingren: mk(MINGREN,"mingren") }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ ming: mk(MING,"ming"), mingren: mk(MINGREN,"mingren") }), { headers: JSON_HEADERS });
     }
     // 路由：/vote 投票（每人每日 3 正 + 3 负）
     if (pathname === "/vote" && request.method === "POST") {
@@ -193,13 +222,13 @@ export class ChatRoom {
       const hall = data.hall === "mingren" ? "mingren" : "ming";
       const name = String(data.name || "").slice(0,30);
       const dir = data.dir === "up" ? "up" : "down";
-      if (!uid || !name) { return new Response(JSON.stringify({ ok:false, msg:"参数错" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }); }
+      if (!uid || !name) { return new Response(JSON.stringify({ ok:false, msg:"参数错" }), { headers: JSON_HEADERS }); }
       const today = new Date().toISOString().slice(0,10);
       const uidVotes = await this.state.storage.get("uidVotes") || {};
       const my = uidVotes[uid] || {};
       if (my.date !== today) { my.date = today; my.up = 0; my.down = 0; }
-      if (dir === "up" && my.up >= 3) return new Response(JSON.stringify({ ok:false, msg:"今日正向票已用完" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
-      if (dir === "down" && my.down >= 3) return new Response(JSON.stringify({ ok:false, msg:"今日负向票已用完" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      if (dir === "up" && my.up >= 3) return new Response(JSON.stringify({ ok:false, msg:"今日正向票已用完" }), { headers: JSON_HEADERS });
+      if (dir === "down" && my.down >= 3) return new Response(JSON.stringify({ ok:false, msg:"今日负向票已用完" }), { headers: JSON_HEADERS });
       if (dir === "up") my.up++; else my.down++;
       uidVotes[uid] = my;
       const votes = await this.state.storage.get("hallVotes") || {};
@@ -208,30 +237,46 @@ export class ChatRoom {
       if (dir === "up") m.up++; else m.down++;
       await this.state.storage.put("hallVotes", votes);
       await this.state.storage.put("uidVotes", uidVotes);
-      return new Response(JSON.stringify({ ok:true, remainingUp: 3 - my.up, remainingDown: 3 - my.down, up:m.up, down:m.down }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ ok:true, remainingUp: 3 - my.up, remainingDown: 3 - my.down, up:m.up, down:m.down }), { headers: JSON_HEADERS });
     }
 
-    // 路由：/set-paused 暂停/恢复聊天互动（主人控制，带密钥）
+    // 路由：/set-paused 暂停/恢复聊天互动（主人控制，管理密钥）
     if (pathname === "/set-paused") {
-      const k = url.searchParams.get("k");
-      const PAUSE_KEY = "abing-pause-key-2026";
-      if (k !== PAUSE_KEY) { return new Response(JSON.stringify({ ok: false }), { status: 403 }); }
+      if (!isAdmin(request, this.env)) { return new Response(JSON.stringify({ ok: false }), { status: 403, headers: JSON_HEADERS }); }
       const p = url.searchParams.get("p") === "1";
       await this.state.storage.put("paused", p);
-      return new Response(JSON.stringify({ ok: true, paused: p }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      return new Response(JSON.stringify({ ok: true, paused: p }), { headers: JSON_HEADERS });
     }
 
-    // 路由：/token 签发 LiveKit token（给屏幕共享用）
+    // 路由：/token 签发 LiveKit token（带鉴权）
+    // - 订阅（默认）：有密码时必须带 pass 正确；无密码开放
+    // - 发布（publish=1）：有密码时只有密码主人 uid 能拿；无密码开放（与"无密码谁都能共享"一致）
     if (pathname === "/token") {
-      const identity = url.searchParams.get("identity") || "guest";
-      const room = url.searchParams.get("room") || "abing";
+      const identity = (url.searchParams.get("identity") || "guest").slice(0, 40);
+      const room = (url.searchParams.get("room") || "abing").slice(0, 40);
+      const wantPublish = url.searchParams.get("publish") === "1";
+      const pass = (url.searchParams.get("pass") || "").slice(0, 20);
+      const uid = (url.searchParams.get("uid") || "").slice(0, 40);
+      const livePass = await this.state.storage.get("livePass") || "";
+      const setter = await this.state.storage.get("livePassSetter") || "";
+      let canPublish = false;
+      if (wantPublish) {
+        if (livePass) {
+          if (!uid || uid !== setter) {
+            return new Response(JSON.stringify({ error: "not-allowed" }), { status: 403, headers: JSON_HEADERS });
+          }
+        }
+        canPublish = true;
+      } else {
+        if (livePass && pass !== livePass) {
+          return new Response(JSON.stringify({ error: "wrong-pass" }), { status: 403, headers: JSON_HEADERS });
+        }
+      }
       try {
-        const token = await makeLiveKitToken(identity, room, this.env);
-        return new Response(JSON.stringify({ token: token, url: this.env.LIVEKIT_URL }), {
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-        });
+        const token = await makeLiveKitToken(identity, room, this.env, canPublish);
+        return new Response(JSON.stringify({ token: token, url: this.env.LIVEKIT_URL }), { headers: JSON_HEADERS });
       } catch (e) {
-        return new Response(JSON.stringify({ error: "token failed" }), { status: 500 });
+        return new Response(JSON.stringify({ error: "token failed" }), { status: 500, headers: JSON_HEADERS });
       }
     }
 
@@ -348,5 +393,17 @@ export default {
     const id = env.CHAT_ROOM.idFromName("main-room");
     const room = env.CHAT_ROOM.get(id);
     return room.fetch(request);
+  },
+  // 定时（每10分钟）：触发 GitHub Actions 查 A-SOUL 直播状态（GitHub 环境能过 B站风控）
+  async scheduled(event, env, ctx) {
+    const token = env.GITHUB_TOKEN || "";
+    if (!token) return;
+    try {
+      await fetch("https://api.github.com/repos/lct123456y-one/abing/actions/workflows/push-asoul-live.yml/dispatches", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json", "Content-Type": "application/json" },
+        body: JSON.stringify({ ref: "master" })
+      });
+    } catch(e) {}
   },
 };
