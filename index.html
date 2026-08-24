@@ -422,6 +422,7 @@
   let ws = null;
   let pollMode = false, lastMsgTime = 0, wsFail = 0, wsConnectingSince = 0;
   var _maintain = false;
+  var _maintainLive = true; // 屏幕共享维护中（主人叫开再开，改成 false 恢复）
   function maintainBlock(nm){ if(_maintain){ alert(nm + " 功能维护中，请稍候~"); return true; } return false; }
   function toggleChat(){ if(maintainBlock("闲聊")) return; document.getElementById('chatPanel').classList.toggle('show'); }
   var _paused = false;
@@ -695,7 +696,19 @@
     await room.connect(url, token);
     lkJoined = true;
   }
-  function toggleLive(){ if(maintainBlock("屏幕共享")) return; const p = document.getElementById('livePanel'); const nowOpen = !p.classList.contains('show'); p.classList.toggle('show'); if (nowOpen) { try { lkJoin(); } catch(e){} } else { /* 关面板：断连释放额度 */ if (lkJoined) { try { if (lkRoom) lkRoom.disconnect(); } catch(e){} lkJoined = false; } } }
+  function toggleLive(){
+    const p = document.getElementById('livePanel');
+    // 已打开时点按钮 = 正常关闭（断连释放额度）
+    if (p.classList.contains('show')) {
+      p.classList.remove('show');
+      if (lkJoined) { try { if (lkRoom) lkRoom.disconnect(); } catch(e){} lkJoined = false; }
+      return;
+    }
+    // 维护中：点开就弹窗
+    if (_maintainLive) { alert("屏幕共享 功能维护中，请稍候~"); return; }
+    p.classList.add('show');
+    try { lkJoin(); } catch(e){}
+  }
   function toggleAsoul(){ document.querySelector('.asoul-side').classList.toggle('open'); if (!asoulLoaded) { asoulLoaded = true; loadAsoul(); renderSleep(); } }
   function fs(id){
     const el = document.getElementById(id);
@@ -737,7 +750,7 @@
     await connectLive(tk.token, tk.url);
     return true;
   }
-  async function startShare(){ if(pausedBlock()) return;
+  async function startShare(){ if(_maintainLive){ alert("屏幕共享 功能维护中，请稍候~"); return; } if(pausedBlock()) return;
     try {
       // 设置密码（可选）：填了则设，没填则清空（带 uid，只有当前共享者能设）
       const pass = document.getElementById('livePass').value.trim();
