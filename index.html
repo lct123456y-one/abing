@@ -613,7 +613,7 @@
   // ---- LiveKit 屏幕共享 ----
   const lkRoom = new LivekitClient.Room();
   let lkJoined = false;
-  function toggleLive(){ if(maintainBlock("屏幕共享")) return; const p = document.getElementById('livePanel'); p.classList.toggle('show'); if (p.classList.contains('show')) { try { lkJoin(); } catch(e){} } }
+  function toggleLive(){ if(maintainBlock("屏幕共享")) return; const p = document.getElementById('livePanel'); const nowOpen = !p.classList.contains('show'); p.classList.toggle('show'); if (nowOpen) { try { lkJoin(); } catch(e){} } else { /* 关面板：断连释放额度 */ if (lkJoined) { try { lkRoom.disconnect(); } catch(e){} lkJoined = false; } } }
   function toggleAsoul(){ document.querySelector('.asoul-side').classList.toggle('open'); }
   function fs(id){
     const el = document.getElementById(id);
