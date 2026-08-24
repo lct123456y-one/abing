@@ -183,7 +183,8 @@
   /* a冰人不吃这一套 · 右上角纯背景装饰 */
   #memeBg { position: fixed; top: 10px; left: 10px; width: 130px; opacity: 0.35; pointer-events: none; z-index: 5; border-radius: 12px; animation: memeMove 12s linear infinite; }
   @keyframes memeMove { 0% { transform: translateX(0); } 50% { transform: translateX(calc(100vw - 150px)); } 100% { transform: translateX(0); } }
-  @media (max-width: 768px) { #memeBg { width: 80px; opacity: 0.25; animation-duration: 10s; } @keyframes memeMove { 0% { transform: translateX(0); } 50% { transform: translateX(calc(100vw - 100px)); } 100% { transform: translateX(0); } } }`n
+  @media (max-width: 768px) { #memeBg { width: 80px; opacity: 0.25; animation-duration: 10s; } @keyframes memeMove { 0% { transform: translateX(0); } 50% { transform: translateX(calc(100vw - 100px)); } 100% { transform: translateX(0); } } }
+
   /* 名人堂/冥人堂 */
   .hall-btn { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 96; }
   .hall-btn button { background: linear-gradient(90deg,#a855f7,#ec4899); color:#fff; border:none; border-radius: 20px; padding: 8px 18px; font-size: 14px; font-weight: 700; cursor: pointer; }
@@ -199,7 +200,8 @@
   .hall-item .vt button { background:rgba(255,255,255,.1); border:none; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:13px; }
   .hall-item .vt button:disabled { opacity:.4; cursor:not-allowed; }
   .hall-remain { color:#f0abfc; font-size:12px; margin-top:10px; text-align:center; }
-  .hall-todo { color:#7a8b9c; font-size:12px; margin-top:8px; text-align:center; }`n</style>
+  .hall-todo { color:#7a8b9c; font-size:12px; margin-top:8px; text-align:center; }
+</style>
 </head>
 <body>
   <div class="card">
@@ -678,5 +680,15 @@
   });
 </script>
   <img id="memeBg" src="./abing-meme.jpg" alt="">
+  <div class="hall-btn">
+    <button class="ming" onclick="openHall('ming')">💀 冥人堂</button>
+    <button onclick="openHall('mingren')">🏆 名人堂</button>
+  </div>
+  <div id="hallPanel">
+    <h3><span id="hallTitle">🏆 名人堂</span><button class="hclose" onclick="closeHall()">×</button></h3>
+    <div id="hallList"></div>
+    <div class="hall-remain" id="hallRemain"></div>
+    <div class="hall-todo">未完待更新…</div>
+  </div>
 </body>
 </html>
