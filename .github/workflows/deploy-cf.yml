@@ -29,4 +29,4 @@ jobs:
           ls deploy
           echo "=== 确认 index.html 有 hall-btn ==="
           grep -c "hall-btn" deploy/index.html || echo "无 hall-btn!"
-          npx wrangler pages deploy deploy --project-name abing-f41
+          npx wrangler pages deploy deploy --project-name abing
