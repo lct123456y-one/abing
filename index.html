@@ -476,9 +476,11 @@
       else if (d.type === 'danmu' && d.message && d.message.text) { showDanmu(d.message); }
       else if (d.type === 'blocked') { alert('你TM别给我乱讲话！'); }
       else if (d.type === 'watch' && d.watch && d.watch.url) {
-        document.getElementById('watchFrame').src = d.watch.url;
         document.getElementById('watchUrl').value = d.watch.url;
-        // 默认收起：收到同步只更新内容，不自动弹出面板
+        // 懒加载：只在面板打开时设置 iframe src（避免 B站播放器后台刷请求挤 ws）
+        if (document.getElementById('watchPanel').classList.contains('show')) {
+          document.getElementById('watchFrame').src = d.watch.url;
+        }
       }
     };
     ws.onopen = () => { wsFail = 0; try { document.getElementById('wsDot').style.background = '#22c55e'; document.getElementById('wsTxt').textContent = '已连接'; } catch(e){} };
@@ -588,7 +590,7 @@
   connect();
 
   // ---- 一起看 ----
-  function toggleWatch(){ if(maintainBlock("一起看")) return; document.getElementById('watchPanel').classList.toggle('show'); }
+  function toggleWatch(){ if(maintainBlock("一起看")) return; const p = document.getElementById('watchPanel'); p.classList.toggle('show'); if (p.classList.contains('show')) { const u = document.getElementById('watchUrl').value; if (u) document.getElementById('watchFrame').src = u; } }
   function biliToEmbed(url){
     let u = url.trim();
     // 纯 BV 号：BVxxxxxxxxxx
