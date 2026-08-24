@@ -236,8 +236,8 @@
       <button id="shareBtn" onclick="startShare()">🖥️ 我共享屏幕</button>
       <input id="livePass" placeholder="共享密码(可选)" maxlength="20" style="background:#16202d;color:#e6edf5;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px;font-size:13px;width:130px;">
       <select id="liveQuality" title="共享画质" style="background:#16202d;color:#e6edf5;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px;font-size:13px;">
-        <option value="smooth" selected>流畅优先(720p/15帧)</option>
-        <option value="hd">清晰优先(1080p/25帧)</option>
+        <option value="smooth" selected>流畅优先(720p/24帧)</option>
+        <option value="hd">清晰优先(1080p/24帧)</option>
       </select>
       <span id="liveStatus">未连接</span>
     </div>
@@ -769,8 +769,8 @@
       const quality = document.getElementById('liveQuality')?.value || 'smooth';
       const isHD = quality === 'hd';
       const q = isHD
-        ? { video: { frameRate: { ideal: 25, max: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, maxBitrate: 3500000, maxFramerate: 25, videoCodec: 'vp8', label: '1080p/25fps' }
-        : { video: { frameRate: { ideal: 15, max: 15 }, width: { ideal: 1280 }, height: { ideal: 720 } }, maxBitrate: 1200000, maxFramerate: 15, videoCodec: 'vp8', label: '720p/15fps' };
+        ? { video: { frameRate: { ideal: 24, max: 24 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, maxBitrate: 3500000, maxFramerate: 24, videoCodec: 'vp8', label: '1080p/24fps' }
+        : { video: { frameRate: { ideal: 24, max: 24 }, width: { ideal: 1280 }, height: { ideal: 720 } }, maxBitrate: 1200000, maxFramerate: 24, videoCodec: 'vp8', label: '720p/24fps' };
       const screen = await navigator.mediaDevices.getDisplayMedia({ video: q.video, audio: true });
       await room.localParticipant.publishTrack(screen.getVideoTracks()[0], {
         source: 'screen_share',
