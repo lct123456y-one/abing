@@ -303,11 +303,12 @@
       // 3+2 分组：前3一排，后2一排（心宜陪思诺）
       const mkRow = (arr) => {
         const row = document.createElement('div'); row.className = 'asoul-live-row';
-        arr.forEach(m => {
+        arr.forEach((m, idx) => {
+          const asoul = ASOUL[idx] || ASOUL.find(x => x.name === m.name) || { name: m.name, img: '' };
           const card = document.createElement('a');
           card.className = 'asoul-live-card' + (m.live ? ' online' : '');
           card.href = m.url; card.target = '_blank';
-          card.innerHTML = '<img src="' + (ASOUL.find(x => x.name === m.name)?.img || '') + '"><span class="nm">' + escapeHtml(m.name) + '</span><span class="dot"></span>' + (m.live ? '<span>开播中</span>' : '');
+          card.innerHTML = '<img src="' + asoul.img + '"><span class="nm">' + escapeHtml(asoul.name) + '</span><span class="dot"></span>' + (m.live ? '<span>开播中</span>' : '');
           row.appendChild(card);
         });
         return row;
