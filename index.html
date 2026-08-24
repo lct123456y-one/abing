@@ -281,7 +281,6 @@
     <h3>🗓️ 本周直播安排</h3>
     <div class="asoul-sched" id="asoulSched"></div>
   </div>
-<script src="./livekit-client.umd.min.js"></script>
 <script>
   // A-SOUL 成员（头像 + 房间）
   const ASOUL = [
@@ -340,19 +339,22 @@
       d.items.forEach(it => {
         const row = document.createElement('div');
         row.className = 'item';
-        row.innerHTML = '<span class="m">' + it.m + '</span><span class="t">' + it.t + '</span>';
+        row.innerHTML = '<span class="m">' + escapeHtml(it.m) + '</span><span class="t">' + escapeHtml(it.t) + '</span>';
         box.appendChild(row);
       });
     });
   }
-  loadAsoul(); renderSched(); loadSched();
+  renderSched(); loadSched();
+  // A-SOUL 抽屉懒加载：第一次拉开才请求直播状态 + 渲染头像（省首屏流量）
+  let asoulLoaded = false;
   // "睡着了"成员（向晚/珈乐）
   const SLEEP = [
     { name: "向晚", img: "./asoul-xiangwan.jpg", uid: "672346917" },
     { name: "珈乐", img: "./asoul-jiale.jpg", uid: "351609538" }
   ];
-  (function(){
+  function renderSleep(){
     const box = document.getElementById('asoulSleep');
+    if (!box || box.children.length) return;
     SLEEP.forEach(s => {
       const a = document.createElement('a');
       a.className = 'asoul-sleep-card';
@@ -360,8 +362,8 @@
       a.innerHTML = '<img src="' + s.img + '"><span class="nm">' + s.name + ' 💤</span>';
       box.appendChild(a);
     });
-  })();
-  setInterval(loadAsoul, 180000);
+  }
+  setInterval(function(){ if (asoulLoaded) loadAsoul(); }, 180000);
 
   // 昵称记忆（localStorage，刷新/重进保持，可主动改）
   (function(){ try { const n = document.getElementById('chatName'); if (n) { n.value = localStorage.getItem('asoul_name') || '群友'; n.addEventListener('input', function(){ localStorage.setItem('asoul_name', n.value.trim()); }); } } catch(e){} })();
@@ -426,8 +428,9 @@
     if (pollMode) return;
     pollMode = true;
     setInterval(async () => {
+      if (!pollMode) return; // WS 已恢复，停拉
       try {
-        const r = await fetch('https://chat.abing.wtf/chat-his');
+        const r = await fetch('https://chat.abing.wtf/chat-his' + (lastMsgTime ? ('?since=' + lastMsgTime) : ''));
         const d = await r.json();
         (d.messages || []).forEach(m => { if (m.time > lastMsgTime) { lastMsgTime = m.time; addMsg(m); } });
       } catch(e){}
@@ -505,7 +508,9 @@
     const box = document.getElementById('chatMsgs');
     const div = document.createElement('div');
     div.className = 'msg';
-    const when = new Date(m.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const d = new Date(m.time);
+    const today = new Date();
+    const when = (d.toDateString() === today.toDateString() ? '' : (d.getMonth() + 1) + '/' + d.getDate() + ' ') + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     let content = '';
     if (m.image) {
       content = '<img src="' + m.image + '" style="max-width:100%;max-height:200px;border-radius:8px;display:block;margin-top:4px;" onclick="window.open(this.src)">';
@@ -551,6 +556,7 @@
   }
   function showDanmu(m){
     const layer = document.getElementById('danmuLayer');
+    while (layer.children.length > 30) layer.removeChild(layer.firstChild); // 同屏最多 30 条，防刷屏卡顿
     const el = document.createElement('div');
     el.className = 'danmu-item';
     el.textContent = m.name + ': ' + m.text;
@@ -617,22 +623,42 @@
     const raw = document.getElementById('watchUrl').value.trim();
     if (!raw || !ws || ws.readyState !== 1) return;
     const url = biliToEmbed(raw);
+    if (!/^https?:\/\//i.test(url)) { alert('只支持 http/https 链接哦'); return; }
     const name = document.getElementById('chatName').value.trim() || '匿名';
     ws.send(JSON.stringify({ type:'watch', url:url, name:name }));
     document.getElementById('watchFrame').src = url;
   }
   document.getElementById('watchUrl').addEventListener('keydown', e => { if (e.key === 'Enter') sendWatch(); });
 
-  // ---- LiveKit 屏幕共享 ----
-  const lkRoom = new LivekitClient.Room();
+  // ---- LiveKit 屏幕共享（livekit-client 库懒加载：打开面板才加载，省首屏 567KB）----
+  let lkRoom = null;
+  let livekitLoading = null;
+  function loadLiveKit(){
+    if (window.LivekitClient) return Promise.resolve();
+    if (livekitLoading) return livekitLoading;
+    livekitLoading = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = './livekit-client.umd.min.js';
+      s.onload = () => resolve();
+      s.onerror = () => { livekitLoading = null; reject(new Error('livekit 加载失败')); };
+      document.body.appendChild(s);
+    });
+    return livekitLoading;
+  }
+  async function getLkRoom(){
+    await loadLiveKit();
+    if (!lkRoom) lkRoom = new LivekitClient.Room();
+    return lkRoom;
+  }
   let lkJoined = false;
   let liveEventsBound = false;
-  function bindLiveEvents(){
+  async function bindLiveEvents(){
     if (liveEventsBound) return;
     liveEventsBound = true;
+    const room = await getLkRoom();
     // 事件监听放在 connect 前，确保不漏早期订阅
-    lkRoom.on('trackSubscribed', (track, pub, participant) => {
-      if (participant.identity === lkRoom.localParticipant.identity) return;
+    room.on('trackSubscribed', (track, pub, participant) => {
+      if (participant.identity === room.localParticipant.identity) return;
       // 视频 + 音频都 attach 到 liveRemote（video 元素同时输出画面和声音）
       if (track.kind === 'video' || track.kind === 'audio') {
         track.attach(document.getElementById('liveRemote'));
@@ -643,15 +669,16 @@
         const v = document.getElementById('liveRemote'); v.play().catch(function(){});
       }
     });
-    lkRoom.on('trackUnsubscribed', (track) => { track.detach(); });
+    room.on('trackUnsubscribed', (track) => { track.detach(); });
   }
   async function connectLive(token, url){
-    bindLiveEvents();
-    await lkRoom.connect(url, token);
+    await bindLiveEvents();
+    const room = await getLkRoom();
+    await room.connect(url, token);
     lkJoined = true;
   }
-  function toggleLive(){ if(maintainBlock("屏幕共享")) return; const p = document.getElementById('livePanel'); const nowOpen = !p.classList.contains('show'); p.classList.toggle('show'); if (nowOpen) { try { lkJoin(); } catch(e){} } else { /* 关面板：断连释放额度 */ if (lkJoined) { try { lkRoom.disconnect(); } catch(e){} lkJoined = false; } } }
-  function toggleAsoul(){ document.querySelector('.asoul-side').classList.toggle('open'); }
+  function toggleLive(){ if(maintainBlock("屏幕共享")) return; const p = document.getElementById('livePanel'); const nowOpen = !p.classList.contains('show'); p.classList.toggle('show'); if (nowOpen) { try { lkJoin(); } catch(e){} } else { /* 关面板：断连释放额度 */ if (lkJoined) { try { if (lkRoom) lkRoom.disconnect(); } catch(e){} lkJoined = false; } } }
+  function toggleAsoul(){ document.querySelector('.asoul-side').classList.toggle('open'); if (!asoulLoaded) { asoulLoaded = true; loadAsoul(); renderSleep(); } }
   function fs(id){
     const el = document.getElementById(id);
     if (el.requestFullscreen) { el.requestFullscreen().then(()=>{ try { screen.orientation.lock('landscape'); } catch(e){} }); }
@@ -699,17 +726,18 @@
       const r = await fetch('https://chat.abing.wtf/set-live-pass?pass=' + encodeURIComponent(pass) + '&uid=' + _hallUid);
       const rj = await r.json().catch(()=>({}));
       if (!rj.ok) { setLiveStatus(rj.msg || '设置密码失败'); return; }
-      if (lkJoined) { try { lkRoom.disconnect(); } catch(e){} lkJoined = false; }
+      if (lkJoined) { try { if (lkRoom) lkRoom.disconnect(); } catch(e){} lkJoined = false; }
       // 共享者用 publish token 连接（有密码时只有密码主人 uid 能拿发布权）
       const id = 'u' + Math.random().toString(36).slice(2,8);
       const tk = await lkGetToken(id, true, pass);
       if (tk.error) { setLiveStatus('无法获取共享权限（密码可能被他人设置）'); return; }
       await connectLive(tk.token, tk.url);
+      const room = await getLkRoom();
       const screen = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 25, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: true });
-      await lkRoom.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: 'screen_share', name: 'screen', codec: 'vp9' });
+      await room.localParticipant.publishTrack(screen.getVideoTracks()[0], { source: 'screen_share', name: 'screen', codec: 'vp9' });
       // 发布音频（屏幕共享的声音/系统声/麦克风）
       if (screen.getAudioTracks().length > 0) {
-        await lkRoom.localParticipant.publishTrack(screen.getAudioTracks()[0], { source: 'microphone', name: 'screen-audio' });
+        await room.localParticipant.publishTrack(screen.getAudioTracks()[0], { source: 'microphone', name: 'screen-audio' });
       }
       document.getElementById('liveLocal').srcObject = screen;
       document.getElementById('livePreview').style.display = 'block';
@@ -733,7 +761,7 @@
             const t0 = await lkGetToken(id0, false, input);
             if (!t0.error) { window._authed = true; window._authedRev = pd.rev; window._lastPass = input; return; }
           }
-          lkRoom.disconnect(); lkJoined = false; window._authed = false; window._authedRev = 0; window._lastPass = '';
+          if (lkRoom) lkRoom.disconnect(); lkJoined = false; window._authed = false; window._authedRev = 0; window._lastPass = '';
         }
       }
     } catch(e){}

@@ -2,6 +2,12 @@ name: Deploy to Cloudflare Pages
 on:
   push:
     branches: [ master ]
+    paths:
+      - 'index.html'
+      - 'livekit-client.umd.min.js'
+      - 'asoul-*.jpg'
+      - 'ranran-*.jpg'
+      - 'abing-meme.jpg'
   workflow_dispatch:
 jobs:
   deploy:

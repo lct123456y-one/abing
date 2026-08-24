@@ -4,6 +4,8 @@ function hasBadWord(t){ return BAD_WORDS.some(w => (t||'').includes(w)); }
 
 // ---- CORS ----
 const JSON_HEADERS = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" };
+// 聊天图片只允许位图格式（拒绝 SVG 等可能带脚本/外链的格式）
+const IMAGE_RE = /^data:image\/(png|jpeg|jpg|gif|webp);/i;
 
 // ---- 管理密钥：只从 Worker secret 读（不再硬编码，防公开仓库泄漏）----
 function isAdmin(request, env) {
@@ -139,9 +141,12 @@ export class ChatRoom {
     }
 
     // 路由：/chat-his 拉取最近消息（HTTP 轮询，wss 连不上的降级）
+    // 支持 ?since=<timestamp> 增量拉取（轮询只拉新消息，省流量）
     if (pathname === "/chat-his") {
       const history = await this.state.storage.get("messages") || [];
-      return new Response(JSON.stringify({ messages: history }), { headers: JSON_HEADERS });
+      const since = Number(url.searchParams.get("since")) || 0;
+      const messages = since > 0 ? history.filter(m => (m.time || 0) > since) : history;
+      return new Response(JSON.stringify({ messages }), { headers: JSON_HEADERS });
     }
     // 路由：/chat-send 发送消息（HTTP 轮询模式）
     if (pathname === "/chat-send" && request.method === "POST") {
@@ -152,7 +157,7 @@ export class ChatRoom {
       const msg = { name: (data.name || "匿名").slice(0, 20), text: (data.text || "").slice(0, 500), time: Date.now() };
       // 违禁词检查（HTTP 发送也拦）
       if (hasBadWord(msg.text)) { return new Response(JSON.stringify({ ok: false, blocked: true }), { headers: JSON_HEADERS }); }
-      if (data.image && typeof data.image === "string" && data.image.indexOf("data:image") === 0 && data.image.length < 2000000) {
+      if (data.image && typeof data.image === "string" && IMAGE_RE.test(data.image.slice(0, 64)) && data.image.length < 1000000) {
         msg.image = data.image;
       }
       // 每 12 小时清空闲聊记录（懒清除，HTTP 也检查）
@@ -318,10 +323,10 @@ export class ChatRoom {
           return;
         }
 
-        // 一起看：换视频/网页 URL
+        // 一起看：换视频/网页 URL（只允许 http/https，防奇怪协议）
         if (data.type === "watch") {
           const url = (data.url || "").slice(0, 500);
-          if (!url) return;
+          if (!url || !/^https?:\/\//i.test(url)) return;
           const watch = { url: url, name: (data.name || "匿名").slice(0, 20), time: Date.now() };
           await this.state.storage.put("watch", watch);
           this.broadcastWatch(watch);
@@ -345,10 +350,9 @@ export class ChatRoom {
           text: (data.text || "").slice(0, 500),
           time: Date.now(),
         };
-        // 图片（base64，限制大小避免爆存储）
+        // 图片（base64，只收位图格式，限制大小避免爆存储）
         if (data.image && typeof data.image === "string") {
-          const preview = data.image.slice(0, 200);
-          if (preview.indexOf("data:image") === 0 && data.image.length < 2000000) {
+          if (IMAGE_RE.test(data.image.slice(0, 64)) && data.image.length < 1000000) {
             msg.image = data.image;
           }
         }
