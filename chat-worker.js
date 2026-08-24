@@ -144,6 +144,39 @@ export class ChatRoom {
       return new Response(JSON.stringify({ ok: true, count: sched.length }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
 
+    // 路由：/hall-data 名人堂/冥人堂成员+票数
+    if (pathname === "/hall-data") {
+      const votes = await this.state.storage.get("hallVotes") || {};
+      const MING = ["狂小椿","五级游侠","乃琳的皮鞭","就看看p","有爆有爆"];
+      const MINGREN = ["上流贝极星","崔东山","咸鱼星","星龟","五更明月/折木","小三月","然宜","030","苹果派（予琳愿）","B猫"];
+      const mk = (list, h) => list.map(n => { const v = (votes[h]||{})[n] || {up:0,down:0}; return { name:n, up:v.up, down:v.down }; });
+      return new Response(JSON.stringify({ ming: mk(MING,"ming"), mingren: mk(MINGREN,"mingren") }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+    // 路由：/vote 投票（每人每日 3 正 + 3 负）
+    if (pathname === "/vote" && request.method === "POST") {
+      let data = {}; try { data = await request.json(); } catch(e){}
+      const uid = String(data.uid || "").slice(0,40);
+      const hall = data.hall === "mingren" ? "mingren" : "ming";
+      const name = String(data.name || "").slice(0,30);
+      const dir = data.dir === "up" ? "up" : "down";
+      if (!uid || !name) { return new Response(JSON.stringify({ ok:false, msg:"参数错" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }); }
+      const today = new Date().toISOString().slice(0,10);
+      const uidVotes = await this.state.storage.get("uidVotes") || {};
+      const my = uidVotes[uid] || {};
+      if (my.date !== today) { my.date = today; my.up = 0; my.down = 0; }
+      if (dir === "up" && my.up >= 3) return new Response(JSON.stringify({ ok:false, msg:"今日正向票已用完" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      if (dir === "down" && my.down >= 3) return new Response(JSON.stringify({ ok:false, msg:"今日负向票已用完" }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+      if (dir === "up") my.up++; else my.down++;
+      uidVotes[uid] = my;
+      const votes = await this.state.storage.get("hallVotes") || {};
+      const h = votes[hall] = votes[hall] || {};
+      const m = h[name] = h[name] || { up:0, down:0 };
+      if (dir === "up") m.up++; else m.down++;
+      await this.state.storage.put("hallVotes", votes);
+      await this.state.storage.put("uidVotes", uidVotes);
+      return new Response(JSON.stringify({ ok:true, remainingUp: 3 - my.up, remainingDown: 3 - my.down, up:m.up, down:m.down }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
+    }
+
     // 路由：/set-paused 暂停/恢复聊天互动（主人控制，带密钥）
     if (pathname === "/set-paused") {
       const k = url.searchParams.get("k");
