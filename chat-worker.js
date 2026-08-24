@@ -439,12 +439,7 @@ export class ChatRoom {
       if (Date.now() - lastFetch < 24 * 60 * 60 * 1000) {
         return { ok: true, skipped: true, msg: "24 小时内已抓过" };
       }
-      const res = await fetch(ASOUL_CAL_URL, {
-        headers: {
-          // 自报家门：非商业粉丝小站，每天取一次公开日程，透明使用
-          "User-Agent": "abing.wtf (A-SOUL fan site, non-commercial, 1 fetch/day)"
-        }
-      });
+      const res = await fetch(ASOUL_CAL_URL);
       if (!res.ok) return { ok: false, status: res.status };
       const lives = await res.json();
       if (!Array.isArray(lives)) return { ok: false, msg: "数据格式不对" };
