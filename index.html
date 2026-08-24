@@ -437,7 +437,7 @@
       fetch('https://chat.abing.wtf/chat-send', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type:'chat', name:n, text:t })
-      }).then(() => { addMsg({ name:n, text:t, time: Date.now() }); }).catch(()=>{});
+      }).then((r) => { if (r && r.ok === false && r.blocked) { alert('你TM别给我乱讲话！'); } else { addMsg({ name:n, text:t, time: Date.now() }); } }).catch(()=>{});
       document.getElementById('chatText').value = '';
       return;
     }

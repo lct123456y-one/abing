@@ -104,6 +104,8 @@ export class ChatRoom {
       let data = {};
       try { data = await request.json(); } catch(e) {}
       const msg = { name: (data.name || "匿名").slice(0, 20), text: (data.text || "").slice(0, 500), time: Date.now() };
+      // 违禁词检查（HTTP 发送也拦）
+      if (hasBadWord(msg.text)) { return new Response(JSON.stringify({ ok: false, blocked: true }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }); }
       if (data.image && typeof data.image === "string" && data.image.indexOf("data:image") === 0 && data.image.length < 2000000) {
         msg.image = data.image;
       }
