@@ -201,6 +201,10 @@
   .hall-item .vt button:disabled { opacity:.4; cursor:not-allowed; }
   .hall-remain { color:#f0abfc; font-size:12px; margin-top:10px; text-align:center; }
   .hall-todo { color:#7a8b9c; font-size:12px; margin-top:8px; text-align:center; }
+
+  .hall-nm { display:flex; justify-content:space-between; align-items:center; }
+  .hall-desc { color:#a896c9; font-size:11px; margin-top:3px; line-height:1.4; }
+  #hallResize { position:absolute; bottom:0; right:0; width:16px; height:16px; cursor:nwse-resize; background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,.4) 50%); }
 </style>
 </head>
 <body>
@@ -369,7 +373,7 @@
         const up = h === 'ming' ? '🙏' : '👍';
         const down = h === 'ming' ? '🤮' : '👎';
         const safe = it.name.replace(/'/g, '');
-        div.innerHTML = '<span class="nm">' + it.name + '<span class="ct">赞' + it.up + ' / 负' + it.down + '</span></span><span class="vt"><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'up\')">' + up + '</button><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'down\')">' + down + '</button></span>';
+        div.innerHTML = '<div class="hall-nm"><span class="nm">' + it.name + '<span class="ct">赞' + it.up + ' / 负' + it.down + '</span></span><span class="vt"><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'up\')">' + up + '</button><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'down\')">' + down + '</button></span></div><div class="hall-desc">' + (it.desc || '') + '</div>';
         box.appendChild(div);
       });
     });
@@ -440,6 +444,8 @@
   makeResizable(document.getElementById('chatPanel'), document.getElementById('chatResize'));
   makeDraggable(document.getElementById('watchPanel'), document.getElementById('watchHead'));
   makeDraggable(document.getElementById('livePanel'), document.getElementById('liveHead'));
+  makeDraggable(document.getElementById('hallPanel'), document.getElementById('hallTitle').parentElement);
+  makeResizable(document.getElementById('hallPanel'), document.getElementById('hallResize'));
   makeResizable(document.getElementById('watchPanel'), document.getElementById('watchResize'));
 
   function connect(){
@@ -691,6 +697,7 @@
     <div id="hallList"></div>
     <div class="hall-remain" id="hallRemain"></div>
     <div class="hall-todo">未完待更新…</div>
+    <div id="hallResize"></div>
   </div>
 </body>
 </html>

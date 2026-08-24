@@ -159,9 +159,26 @@ export class ChatRoom {
     // 路由：/hall-data 名人堂/冥人堂成员+票数
     if (pathname === "/hall-data") {
       const votes = await this.state.storage.get("hallVotes") || {};
-      const MING = ["狂小椿","五级游侠","乃琳的皮鞭","就看看p","有爆有爆"];
-      const MINGREN = ["上流贝极星","崔东山","咸鱼星","星龟","五更明月/折木","小三月","然宜","030","苹果派（予琳愿）","B猫"];
-      const mk = (list, h) => list.map(n => { const v = (votes[h]||{})[n] || {up:0,down:0}; return { name:n, up:v.up, down:v.down }; });
+      const MING = [
+        { name:"狂小椿", desc:"卷 a冰 sc 钱跑路，吞米潜逃孚众望，杳无音信" },
+        { name:"五级游侠", desc:"海力士亏钱不堪重负，隐于市井。江湖传闻，以跳楼" },
+        { name:"乃琳的皮鞭", desc:"鬼屋嫌弃鬼屋。身为鬼屋不自知，今日方知我是我" },
+        { name:"就看看p", desc:"护妻心切七进七出，道心破碎遁入空门" },
+        { name:"有爆有爆", desc:"「我换来了一代人的和平」——咸鱼星在斩杀他后如是说道。结果后面的事情大家都知道了……" }
+      ];
+      const MINGREN = [
+        { name:"上流贝极星", desc:"蓝色臭狗。引导完毕，功成身退。如今化作 a冰 吉祥物，终日受人瞻仰" },
+        { name:"崔东山", desc:"428 一役，贴吧众口铄金，遂断其志。然虽身处残年，仍念咸鱼星归位之日，夙夜难寐" },
+        { name:"咸鱼星", desc:"功过难论，无冕之王，a冰 无权为你授勋" },
+        { name:"星龟", desc:"师承咸鱼星。继贴吧吧主投降之后，又开创 QQ 群群主投降之先河。线下盗播一事更为津津乐道，大头通缉令亦曾漫天飞舞。虽败而不改其志，至今仍思使危楼复安，幽日重明" },
+        { name:"五更明月/折木", desc:"在天愿作比翼鸟，在地愿为连理枝。折木既毕业搬砖，五更明月亦随之销声匿迹。曾经比翼，终成散席" },
+        { name:"小三月", desc:"a冰 唯一不会下跪的男人，a冰 b站 办事处主任。晚年开动脑筋犯了 vr 倾错误，功过七三，尚未可盖棺而论" },
+        { name:"然宜", desc:"a冰 最 SIGMA 的男人，老颦蹙最后的明珠，露早嘉然星瞳最忠实的粉丝，爱慕予琳愿" },
+        { name:"030", desc:"a冰 第一圣女，滴泪妹，站街挣钱 ing" },
+        { name:"苹果派（予琳愿）", desc:"雀魂 xtt 大明星，乃友、粥皮，B站 UP 主。所涉领域甚广，一身数职" },
+        { name:"B猫", desc:"a冰 创始人，乌托邦计划发起者，愿梦中巴别塔长存" }
+      ];
+      const mk = (list, h) => list.map(m => { const v = (votes[h]||{})[m.name] || {up:0,down:0}; return { name:m.name, desc:m.desc, up:v.up, down:v.down }; });
       return new Response(JSON.stringify({ ming: mk(MING,"ming"), mingren: mk(MINGREN,"mingren") }), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } });
     }
     // 路由：/vote 投票（每人每日 3 正 + 3 负）
