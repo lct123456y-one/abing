@@ -521,6 +521,8 @@
       document.getElementById('chatText').value = t;
       document.getElementById('chatText').placeholder = '连接中/失败，点一下重试…';
       connect();
+  // ws 保活：未连接就自动重连（不用等说话）
+  setInterval(function(){ if (ws && ws.readyState !== 1 && !pollMode) { connect(); } }, 5000);
       return;
     }
     ws.send(JSON.stringify({ type:'chat', name:n, text:t }));
