@@ -467,8 +467,15 @@
   makeResizable(document.getElementById('chatPanel'), document.getElementById('chatResize'));
   makeDraggable(document.getElementById('watchPanel'), document.getElementById('watchHead'));
   makeDraggable(document.getElementById('livePanel'), document.getElementById('liveHead'));
-  makeDraggable(document.getElementById('hallPanel'), document.getElementById('hallTitle').parentElement);
-  makeResizable(document.getElementById('hallPanel'), document.getElementById('hallResize'));
+  // hallPanel 的 HTML 在本脚本之后才解析，等 DOM 就绪再初始化（否则 JS 崩溃、WS 连接全挂）
+  document.addEventListener('DOMContentLoaded', function(){
+    const hp = document.getElementById('hallPanel');
+    const ht = document.getElementById('hallTitle');
+    if (hp && ht) {
+      makeDraggable(hp, ht.parentElement);
+      makeResizable(hp, document.getElementById('hallResize'));
+    }
+  });
   makeResizable(document.getElementById('watchPanel'), document.getElementById('watchResize'));
 
   let wsConnectTimer = null;
