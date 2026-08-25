@@ -71,6 +71,11 @@
   img.emoji { width:1.2em; height:1.2em; vertical-align:-0.2em; display:inline-block; border-radius:0; margin:0 1px; }
   .msg .who { font-weight:700; color:#c4b5fd; margin-right:6px; }
   .msg .when { color:#8b7aa8; font-size:11px; margin-left:6px; }
+  /* 时间移到名字同一行右侧，手机端固定可见，不被长消息挤掉 */
+  .msg-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .msg-head .who { font-weight:700; color:#c4b5fd; }
+  .msg-head .when { color:#8b7aa8; font-size:11px; flex-shrink:0; }
+  .msg-body { margin-top:2px; word-break:break-word; }
   #chatInput { display:flex; border-top:1px solid rgba(255,255,255,.1); padding:8px; background:#1e2a38; }
   #chatName { width:30%; border:1px solid rgba(255,255,255,.2); background:#1a0f2e; color:#e6edf5; border-radius:8px; padding:8px; margin-right:6px; font-size:13px; font-family:"PingFang SC","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
   #chatText { flex:1; border:1px solid rgba(255,255,255,.2); background:#1a0f2e; color:#e6edf5; border-radius:8px; padding:8px; font-size:13px; font-family:"PingFang SC","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
@@ -546,8 +551,15 @@
     if (m.text) {
       content = '<div>' + emojiToHtml(m.text) + '</div>' + content;
     }
-    div.innerHTML = '<span class="who"></span>' + content + '<span class="when">' + when + '</span>';
-    div.querySelector('.who').textContent = m.name + ':';
+    const head = document.createElement('div');
+    head.className = 'msg-head';
+    head.innerHTML = '<span class="who"></span><span class="when">' + when + '</span>';
+    head.querySelector('.who').textContent = m.name + ':';
+    div.appendChild(head);
+    const body = document.createElement('div');
+    body.className = 'msg-body';
+    body.innerHTML = content;
+    div.appendChild(body);
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
     if (box.children.length > 100) box.removeChild(box.firstChild);
