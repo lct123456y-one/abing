@@ -190,6 +190,10 @@
     /* 面板手机端：默认缩小（可拖动）*/
     #chatPanel, #watchPanel, #livePanel { width: 92vw; height: 55vh; left: 4vw; right: auto; bottom: auto; top: 20vh; border-radius: 14px; }
     #watchPanel { height: 48vh; }
+    /* 名人堂手机端：单列排布 + 大头像好点按 */
+    #hallPanel { width: 92vw; padding: 12px; }
+    .hall-item { width: 100%; }
+    .hall-avatar { width: 48px; height: 48px; }
   }
 
   /* a冰人不吃这一套 · 右上角纯背景装饰 */
@@ -208,7 +212,7 @@
   #hallList { display:flex; flex-wrap:wrap; gap:8px; }
   .hall-item { display:flex; gap:8px; align-items:flex-start; width:47%; padding: 8px; border-radius: 10px; background: rgba(255,255,255,.05); box-sizing:border-box; cursor:pointer; }
   .hall-avatar { width: 36px; height: 36px; border-radius: 8px; background: #111; flex-shrink: 0; }
-  .hall-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: block; }
+  .hall-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: block; cursor: pointer; }
   .hall-body { flex:1; min-width: 0; }
   .hall-nm { display:flex; justify-content:space-between; align-items:center; gap:6px; }
   .hall-desc { color:#a896c9; font-size:11px; margin-top:4px; line-height:1.4; }
@@ -390,6 +394,7 @@
   localStorage.setItem('hall_uid', _hallUid);
   // 头像映射：没有专属头像的用默认头像；"五更明月/折木"用折木头像
   const HALL_AVATARS = {
+    "就看看p": "就看看p.jpg",
     "五级游侠": "五级游侠.jpg",
     "乃琳的皮鞭": "乃琳的皮鞭.jpg",
     "有爆有爆": "有爆有爆.jpg",
@@ -416,7 +421,7 @@
         const up = h === 'ming' ? '🙏' : '👍';
         const down = h === 'ming' ? '🤮' : '👎';
         const safe = it.name.replace(/'/g, '');
-        div.innerHTML = '<div class="hall-avatar"><img src="' + hallAvatar(it.name) + '" alt=""></div><div class="hall-body"><div class="hall-nm"><span class="nm">' + it.name + '<span class="ct">赞' + it.up + ' / 负' + it.down + '</span></span><span class="vt"><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'up\')">' + up + '</button><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'down\')">' + down + '</button></span></div><div class="hall-desc">' + (it.desc || '') + '</div></div>';
+        div.innerHTML = '<div class="hall-avatar"><img src="' + hallAvatar(it.name) + '" alt="" onclick="alert(\'傻逼\')"></div><div class="hall-body"><div class="hall-nm"><span class="nm">' + it.name + '<span class="ct">赞' + it.up + ' / 负' + it.down + '</span></span><span class="vt"><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'up\')">' + up + '</button><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'down\')">' + down + '</button></span></div><div class="hall-desc">' + (it.desc || '') + '</div></div>';
         box.appendChild(div);
       });
     });
@@ -887,7 +892,7 @@
     <h3><span id="hallTitle">🏆 名人堂</span><button class="hclose" onclick="closeHall()">×</button></h3>
     <div id="hallList"></div>
     <div class="hall-remain" id="hallRemain"></div>
-    <div class="hall-todo">未完待更新…</div>
+    <div class="hall-todo">点击头像查看大头 · 未完待更新…</div>
     <div id="hallResize"></div>
   </div>
 </body>
