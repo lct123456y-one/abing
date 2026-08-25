@@ -203,7 +203,7 @@ export class ChatRoom {
       if (paused) { return new Response(JSON.stringify({ ok: false, paused: true }), { headers: JSON_HEADERS }); }
       let data = {};
       try { data = await request.json(); } catch(e) {}
-      const msg = { name: (data.name || "匿名").slice(0, 20), text: (data.text || "").slice(0, 500), time: Date.now() };
+      const msg = { id: String(data.id || crypto.randomUUID()).slice(0, 64), name: (data.name || "匿名").slice(0, 20), text: (data.text || "").slice(0, 500), time: Date.now() };
       // 违禁词检查（HTTP 发送也拦）
       if (hasBadWord(msg.text)) { return new Response(JSON.stringify({ ok: false, blocked: true }), { headers: JSON_HEADERS }); }
       if (data.image && typeof data.image === "string" && IMAGE_RE.test(data.image.slice(0, 64)) && data.image.length < 1000000) {
@@ -402,6 +402,7 @@ export class ChatRoom {
         // 违禁词检查：含违禁词 → 拦截 + 提示（不广播）
         if (hasBadWord(data.text)) { server.send(JSON.stringify({ type: "blocked" })); return; }
         const msg = {
+          id: String(data.id || crypto.randomUUID()).slice(0, 64),
           name: (data.name || "匿名").slice(0, 20),
           text: (data.text || "").slice(0, 500),
           time: Date.now(),

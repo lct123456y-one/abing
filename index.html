@@ -514,7 +514,11 @@
     ws.onmessage = (ev) => {
       const d = JSON.parse(ev.data);
       if (d.type === 'history') { d.messages.forEach(addMsg); }
-      else if (d.type === 'chat') { addMsg(d.message); }
+      else if (d.type === 'chat') {
+        // 自己刚发的消息本地已显示，广播回来按 id 去重，不重复添加
+        if (d.message && d.message.id && document.querySelector('.msg[data-mid="' + d.message.id + '"]')) return;
+        addMsg(d.message);
+      }
       else if (d.type === 'danmu' && d.message && d.message.text) { showDanmu(d.message); }
       else if (d.type === 'blocked') { alert('你TM别给我乱讲话！'); }
       else if (d.type === 'watch' && d.watch && d.watch.url) {
@@ -541,6 +545,7 @@
     const box = document.getElementById('chatMsgs');
     const div = document.createElement('div');
     div.className = 'msg';
+    if (m.id) div.dataset.mid = m.id;
     const d = new Date(m.time);
     const today = new Date();
     const when = (d.toDateString() === today.toDateString() ? '' : (d.getMonth() + 1) + '/' + d.getDate() + ' ') + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
@@ -583,7 +588,9 @@
       connect(); // 全局保活会持续重连，不用手动发消息触发
       return;
     }
-    ws.send(JSON.stringify({ type:'chat', name:n, text:t }));
+    const mid = crypto.randomUUID();
+    ws.send(JSON.stringify({ type:'chat', name:n, text:t, id:mid }));
+    addMsg({ id:mid, name:n, text:t, time: Date.now() }); // 本地立即显示，广播回来按 id 去重
     document.getElementById('chatText').value = '';
   }
   // 弹幕
@@ -636,7 +643,9 @@
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         const base64 = canvas.toDataURL('image/jpeg', 0.8);
         if (!ws || ws.readyState !== 1) return;
-        ws.send(JSON.stringify({ type:'chat', name:n, text:'', image:base64 }));
+        const mid = crypto.randomUUID();
+        ws.send(JSON.stringify({ type:'chat', name:n, text:'', image:base64, id:mid }));
+        addMsg({ id:mid, name:n, text:'', image:base64, time: Date.now() }); // 本地立即显示
       };
       img.src = reader.result;
     };
