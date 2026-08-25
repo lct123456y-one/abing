@@ -681,9 +681,12 @@
     try {
       return safe.replace(window.emojiRegex(), (m) => {
         let cps = [];
-        for (const ch of m) cps.push(ch.codePointAt(0).toString(16));
+        for (const ch of m) {
+          const cp = ch.codePointAt(0).toString(16);
+          if (cp !== 'fe0f') cps.push(cp); // noto-emoji 文件名不含 fe0f，带上会 404 显示坏图
+        }
         const code = cps.join('_');
-        return '<img class="emoji" draggable="false" alt="' + m + '" src="https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/svg/emoji_u' + code + '.svg">';
+        return '<img class="emoji" draggable="false" alt="' + m + '" src="https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/svg/emoji_u' + code + '.svg" onerror="this.replaceWith(document.createTextNode(this.alt))">';
       });
     } catch(e) { return safe; }
   }
