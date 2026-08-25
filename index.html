@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-color-emoji/index.css">
 <script type="module">
   // 加载 emoji 正则库（ESM），用于把 emoji 字符替换成图片显示
   import emojiRegex from 'https://cdn.jsdelivr.net/npm/emoji-regex@10.4.0/index.js/+esm';
@@ -66,7 +65,7 @@
   #chatHead { background:linear-gradient(90deg,#a855f7,#ec4899); color:#fff; padding:10px 16px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:center; cursor:move; }
   #chatClose { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; }
   #chatMsgs { flex:1; overflow-y:auto; padding:12px; background:#1a0f2e; }
-  .msg { margin-bottom:8px; font-size:14px; color:#e6edf5; font-family:"PingFang SC","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
+  .msg { margin-bottom:8px; font-size:14px; color:#e6edf5; font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
   .msg img { max-width:100%; max-height:200px; border-radius:8px; display:block; margin-top:4px; }
   img.emoji { width:1.2em; height:1.2em; vertical-align:-0.2em; display:inline-block; border-radius:0; margin:0 1px; }
   .msg .who { font-weight:700; color:#c4b5fd; margin-right:6px; }
@@ -77,11 +76,11 @@
   .msg-head .when { color:#8b7aa8; font-size:11px; flex-shrink:0; }
   .msg-body { margin-top:2px; word-break:break-word; }
   #chatInput { display:flex; border-top:1px solid rgba(255,255,255,.1); padding:8px; background:#1e2a38; }
-  #chatName { width:30%; border:1px solid rgba(255,255,255,.2); background:#1a0f2e; color:#e6edf5; border-radius:8px; padding:8px; margin-right:6px; font-size:13px; font-family:"PingFang SC","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
-  #chatText { flex:1; border:1px solid rgba(255,255,255,.2); background:#1a0f2e; color:#e6edf5; border-radius:8px; padding:8px; font-size:13px; font-family:"PingFang SC","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
+  #chatName { width:30%; border:1px solid rgba(255,255,255,.2); background:#1a0f2e; color:#e6edf5; border-radius:8px; padding:8px; margin-right:6px; font-size:13px; font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
+  #chatText { flex:1; border:1px solid rgba(255,255,255,.2); background:#1a0f2e; color:#e6edf5; border-radius:8px; padding:8px; font-size:13px; font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
   #chatSend { background:#a855f7; color:#fff; border:none; border-radius:8px; padding:0 14px; margin-left:6px; cursor:pointer; font-size:13px; }
   #danmuInputBar { display:flex; padding:6px 8px; background:#1a0f2e; border-top:1px solid rgba(255,255,255,.1); }
-  #danmuText { flex:1; border:1px solid rgba(255,255,255,.2); background:#16202d; color:#e6edf5; border-radius:8px; padding:7px; font-size:13px; font-family:"PingFang SC","Microsoft YaHei","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif; }
+  #danmuText { flex:1; border:1px solid rgba(255,255,255,.2); background:#16202d; color:#e6edf5; border-radius:8px; padding:7px; font-size:13px; font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
   #danmuSend { background:#f472b6; color:#fff; border:none; border-radius:8px; padding:0 14px; margin-left:6px; cursor:pointer; font-size:13px; }
   /* 弹幕层 */
   #danmuLayer { position:fixed; top:0; left:0; right:0; bottom:0; pointer-events:none !important; z-index:9998; overflow:hidden; }
