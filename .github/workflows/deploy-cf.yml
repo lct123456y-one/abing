@@ -8,6 +8,7 @@ on:
       - 'asoul-*.jpg'
       - 'ranran-*.jpg'
       - 'abing-meme.jpg'
+      - 'hall-avatars/*.jpg'
   workflow_dispatch:
 jobs:
   deploy:
@@ -31,6 +32,8 @@ jobs:
           cp asoul-*.jpg deploy/ 2>/dev/null || true
           cp ranran-*.jpg deploy/ 2>/dev/null || true
           cp abing-meme.jpg deploy/ 2>/dev/null || true
+          mkdir -p deploy/hall-avatars
+          cp hall-avatars/*.jpg deploy/hall-avatars/ 2>/dev/null || true
           echo "=== deploy 文件 ==="
           ls deploy
           echo "=== 确认 index.html 有 hall-btn ==="
