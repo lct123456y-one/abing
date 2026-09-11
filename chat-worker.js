@@ -499,7 +499,7 @@ export default {
     }
     // ③ 抓 asoulcalendar 更新本周直播安排（24 小时节流，不依赖 GitHub token）
     try {
-      await room.fetch(new Request("https://internal/refresh-schedule", { headers: { "X-Internal-Key": key } }));
+      await room.fetch(new Request("https://internal/refresh-schedule", { headers: { "X-Admin-Key": key } }));
     } catch(e) {}
   },
 };
