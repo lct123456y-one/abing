@@ -273,7 +273,8 @@ export class ChatRoom {
         { name:"然宜", desc:"a冰 最 SIGMA 的男人，老颦蹙最后的明珠，露早嘉然星瞳最忠实的粉丝，爱慕予琳愿" },
         { name:"030", desc:"a冰 第一圣女，滴泪妹，站街挣钱 ing" },
         { name:"苹果派（予琳愿）", desc:"雀魂 xtt 大明星，乃友、粥皮，B站 UP 主。所涉领域甚广，一身数职" },
-        { name:"B猫", desc:"a冰 创始人，乌托邦计划发起者，愿梦中巴别塔长存" }
+        { name:"B猫", desc:"a冰 创始人，乌托邦计划发起者，愿梦中巴别塔长存" },
+        { name:"赞赞的妮🐮", desc:"赞妮：战狂kg，酒鬼麦当劳喜欢被言语辱骂，手下有近300条的野狗养殖场，张哥心魔" }
       ];
       const mk = (list, h) => list.map(m => { const v = (votes[h]||{})[m.name] || {up:0,down:0}; return { name:m.name, desc:m.desc, up:v.up, down:v.down }; });
       return new Response(JSON.stringify({ ming: mk(MING,"ming"), mingren: mk(MINGREN,"mingren") }), { headers: JSON_HEADERS });
