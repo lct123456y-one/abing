@@ -411,6 +411,28 @@
     const file = HALL_AVATARS[name] || HALL_DEFAULT_AVATAR;
     return './hall-avatars/' + encodeURIComponent(file);
   }
+  // 点击张哥头像：申请打开摄像头（本地小窗预览，不上传），再点关闭
+  let zhanggeCamStream = null;
+  function zhanggeCam(){
+    const box = document.getElementById('zhanggeCamBox');
+    if (box) {
+      if (zhanggeCamStream) { zhanggeCamStream.getTracks().forEach(t => t.stop()); zhanggeCamStream = null; }
+      box.remove();
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert('这浏览器不支持摄像头申请'); return; }
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      zhanggeCamStream = stream;
+      const b = document.createElement('div');
+      b.id = 'zhanggeCamBox';
+      b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:180px;height:240px;background:#000;border-radius:12px;overflow:hidden;z-index:99999;box-shadow:0 8px 30px rgba(0,0,0,.6);border:2px solid #f472b6;';
+      b.innerHTML = '<video id="zhanggeCamVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover;"></video><button onclick="zhanggeCam()" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:14px;">×</button>';
+      document.body.appendChild(b);
+      b.querySelector('video').srcObject = stream;
+    }).catch(e => {
+      alert('张哥摄像头申请被拒：' + e.message);
+    });
+  }
   function openHall(h){
     document.getElementById('hallTitle').textContent = h === 'ming' ? '💀 冥人堂' : '🏆 名人堂';
     document.getElementById('hallPanel').classList.add('show');
@@ -422,7 +444,8 @@
         const up = h === 'ming' ? '🙏' : '👍';
         const down = h === 'ming' ? '🤮' : '👎';
         const safe = it.name.replace(/'/g, '');
-        div.innerHTML = '<div class="hall-avatar"><img src="' + hallAvatar(it.name) + '" alt="" onclick="alert(\'傻逼\')"></div><div class="hall-body"><div class="hall-nm"><span class="nm">' + it.name + '<span class="ct">赞' + it.up + ' / 负' + it.down + '</span></span><span class="vt"><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'up\')">' + up + '</button><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'down\')">' + down + '</button></span></div><div class="hall-desc">' + (it.desc || '') + '</div></div>';
+        const headFn = it.name === '张哥' ? 'zhanggeCam()' : "alert('傻逼')";
+        div.innerHTML = '<div class="hall-avatar"><img src="' + hallAvatar(it.name) + '" alt="" onclick="' + headFn + '"></div><div class="hall-body"><div class="hall-nm"><span class="nm">' + it.name + '<span class="ct">赞' + it.up + ' / 负' + it.down + '</span></span><span class="vt"><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'up\')">' + up + '</button><button onclick="voteIt(this,\'' + h + '\',\'' + safe + '\',\'down\')">' + down + '</button></span></div><div class="hall-desc">' + (it.desc || '') + '</div></div>';
         box.appendChild(div);
       });
     });
