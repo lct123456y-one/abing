@@ -304,6 +304,21 @@ export class ChatRoom {
       return new Response(JSON.stringify({ ok:true, remainingUp: 3 - my.up, remainingDown: 3 - my.down, up:m.up, down:m.down }), { headers: JSON_HEADERS });
     }
 
+    // 路由：/set-hall-votes 管理端直接设置名人堂票数（主人/肥鱼，管理密钥）
+    if (pathname === "/set-hall-votes") {
+      if (!isAdmin(request, this.env)) { return new Response(JSON.stringify({ ok: false }), { status: 403, headers: JSON_HEADERS }); }
+      const hall = url.searchParams.get("hall") === "mingren" ? "mingren" : "ming";
+      const name = String(url.searchParams.get("name") || "").slice(0, 30);
+      if (!name) { return new Response(JSON.stringify({ ok:false, msg:"缺 name" }), { headers: JSON_HEADERS }); }
+      const up = Math.max(0, Number(url.searchParams.get("up")) || 0);
+      const down = Math.max(0, Number(url.searchParams.get("down")) || 0);
+      const votes = await this.state.storage.get("hallVotes") || {};
+      const h = votes[hall] = votes[hall] || {};
+      h[name] = { up, down };
+      await this.state.storage.put("hallVotes", votes);
+      return new Response(JSON.stringify({ ok:true, hall, name, up, down }), { headers: JSON_HEADERS });
+    }
+
     // 路由：/set-paused 暂停/恢复聊天互动（主人控制，管理密钥）
     if (pathname === "/set-paused") {
       if (!isAdmin(request, this.env)) { return new Response(JSON.stringify({ ok: false }), { status: 403, headers: JSON_HEADERS }); }
